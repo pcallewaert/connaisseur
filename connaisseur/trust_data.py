@@ -10,7 +10,12 @@ from jsonschema import ValidationError as JValidationError
 from jsonschema import FormatChecker as JFormatChecker
 from connaisseur.key_store import KeyStore
 from connaisseur.crypto import verify_signature
-from connaisseur.exceptions import NotFoundException, ValidationError, NoSuchClassError
+from connaisseur.exceptions import (
+    ValidationError,
+    NotFoundException,
+    InvalidTrustDataFormatError,
+    NoSuchClassError,
+)
 
 
 class TrustData:
@@ -39,18 +44,17 @@ class TrustData:
             if re.match("^targets/[^/\\s]+$", role):
                 return super(TrustData, cls).__new__(TargetsData)
 
-            raise NoSuchClassError(
-                "could not find class with name {}.".format(role)
-            ) from err
+            msg = "Unable to find find class {class_name}."
+            raise NoSuchClassError(message=msg, class_name=role) from err
 
     def __init__(self, data: dict, role: str):
         self.schema_path = self.schema_path.format(role)
         self.kind = role
-        self._validate_schema(data)
+        self.__validate_schema(data)
         self.signed = data["signed"]
         self.signatures = data["signatures"]
 
-    def _validate_schema(self, data: dict):
+    def __validate_schema(self, data: dict):
         """
         Validates the schema of the given trust `data`.
 
@@ -62,8 +66,9 @@ class TrustData:
         try:
             json_validate(instance=data, schema=schema, format_checker=JFormatChecker())
         except JValidationError as err:
-            raise ValidationError(
-                "trust data has invalid format.", {"trust_data_type": self.kind}
+            msg = "Trust data {trust_data_kind} has an invalid format."
+            raise InvalidTrustDataFormatError(
+                message=msg, trust_data_kind=self.kind
             ) from err
 
     def validate(self, keystore: KeyStore):
@@ -85,10 +90,8 @@ class TrustData:
         now = datetime.now(pytz.utc)
 
         if expire < now:
-            raise ValidationError(
-                "trust data expired.",
-                {"expire": str(expire), "trust_data_type": self.signed.get("_type")},
-            )
+            msg = "Trust data {trust_data_kind} has expired."
+            raise ValidationError(message=msg, trust_data_kind=self.kind)
 
     def validate_signature(self, keystore: KeyStore):
         """
@@ -103,19 +106,11 @@ class TrustData:
             pub_key = keystore.get_key(key_id)
             sig = signature["sig"]
 
-            if not pub_key:
-                raise NotFoundException(
-                    "couldn't find right public for trust data.",
-                    {"key_id": key_id, "trust_data_type": self.signed.get("_type")},
-                )
-
             try:
                 verify_signature(pub_key, sig, msg)
             except Exception as err:
-                raise ValidationError(
-                    "failed to verify signature of trust data.",
-                    {"key_id": key_id, "trust_data_type": self.signed.get("_type")},
-                ) from err
+                msg = "Failed to verify signature of trust data {trust_data_kind}."
+                raise ValidationError(message=msg, trust_data_kind=self.kind) from err
 
     def validate_hash(self, keystore: KeyStore):
         """
@@ -134,15 +129,8 @@ class TrustData:
         data_len = len(data_dump)
 
         if hash_ != data_hash or len_ != data_len:
-            raise ValidationError(
-                "failed validating trust data hash.",
-                {
-                    "given_hash": hash_,
-                    "calculated_hash": data_hash,
-                    "given_len": len_,
-                    "calculated_len": data_len,
-                },
-            )
+            msg = "Failed to validate hash of trust data {trust_data_kind}."
+            raise ValidationError(message=msg, trust_data_kind=self.kind)
 
     def get_keys(self):
         """
@@ -185,9 +173,7 @@ class TimestampData(TrustData):  # pylint: disable=abstract-method
 
 
 class TargetsData(TrustData):  # pylint: disable=abstract-method
-    def __init__(self, data: dict, role: str):
-        self.schema_path = "connaisseur/res/targets_schema.json"
-        super().__init__(data, role)
+    schema_path: str = "connaisseur/res/targets_schema.json"
 
     def has_delegations(self):
         """
@@ -208,9 +194,8 @@ class TargetsData(TrustData):  # pylint: disable=abstract-method
         try:
             return self.signed.get("targets", {})[tag]["hashes"]["sha256"]
         except KeyError as err:
-            raise NotFoundException(
-                'could not find digest for tag "{}".'.format(tag)
-            ) from err
+            msg = "Unable to find digest for tag {tag}."
+            raise NotFoundException(message=msg, tag=tag) from err
 
     def get_keys(self):
         """

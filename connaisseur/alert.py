@@ -10,7 +10,7 @@ from jsonschema import validate as json_validate
 from connaisseur.util import safe_path_func
 from connaisseur.exceptions import AlertSendingError, ConfigurationError
 from connaisseur.image import Image
-from connaisseur.mutate import get_container_specs
+from connaisseur.admission_request import AdmissionRequest
 
 
 class Alert:
@@ -27,22 +27,22 @@ class Alert:
     headers: dict
 
     context: dict
-    admission_request: dict
     throw_if_alert_sending_fails: bool
 
-    def __init__(self, alert_message, receiver_config, admission_request):
+    def __init__(
+        self, alert_message, receiver_config, admission_request: AdmissionRequest
+    ):
         self.context = {
             "alert_message": alert_message,
             "priority": str(receiver_config.get("priority", 3)),
             "connaisseur_pod_id": os.getenv("POD_NAME"),
             "cluster": os.getenv("CLUSTER_NAME"),
             "timestamp": datetime.now(),
-            "request_id": admission_request.get("request", {}).get(
-                "uid", "No given UID"
+            "request_id": admission_request.uid or "No given UID",
+            "images": (
+                str(admission_request.k8s_object.container_images) or "No given images"
             ),
-            "images": (str(get_images(admission_request)) or "No given images"),
         }
-        self.admission_request = admission_request
         self.receiver_url = receiver_config["receiver_url"]
         self.template = receiver_config["template"]
         self.throw_if_alert_sending_fails = receiver_config.get(
@@ -135,13 +135,6 @@ def load_config():
     return alertconfig
 
 
-def get_images(admission_request):
-    relevant_spec = get_container_specs(
-        admission_request.get("request", {}).get("object", {})
-    )
-    return list(map(lambda x: x.get("image"), relevant_spec))
-
-
 def send_alerts(admission_request, *, admitted, reason=None):
     alert_config = load_config()
     event_category = "admit_request" if admitted else "reject_request"
@@ -168,7 +161,7 @@ def call_alerting_on_request(admission_request, *, admitted):
             normalized_hook_image.tag,
         )
         images = []
-        for image in get_images(admission_request):
+        for image in admission_request.k8s_object.container_images:
             normalized_image = Image(image)
             images.append(
                 "{}/{}/{}:{}".format(
