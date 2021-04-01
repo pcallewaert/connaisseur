@@ -2,8 +2,9 @@ import pytest
 import json
 import pytz
 import datetime as dt
-import connaisseur.trust_data
-from connaisseur.exceptions import ValidationError, NotFoundException, NoSuchClassError
+import conftest as fix
+import connaisseur.trust_data as td
+import connaisseur.exceptions as exc
 from connaisseur.key_store import KeyStore
 from connaisseur.crypto import load_key
 
@@ -212,24 +213,6 @@ timestamp_hashes = {
 
 
 @pytest.fixture
-def td():
-    return connaisseur.trust_data
-
-
-@pytest.fixture
-def mock_schema_path(monkeypatch):
-    def trust_init(self, data: dict, role: str):
-        self.schema_path = "res/targets_schema.json"
-        self.kind = role
-        self._validate_schema(data)
-        self.signed = data["signed"]
-        self.signatures = data["signatures"]
-
-    monkeypatch.setattr(connaisseur.trust_data.TargetsData, "__init__", trust_init)
-    connaisseur.trust_data.TrustData.schema_path = "res/{}_schema.json"
-
-
-@pytest.fixture
 def mock_keystore(monkeypatch):
     def init(self):
         self.keys = {
@@ -280,169 +263,128 @@ def mock_keystore(monkeypatch):
     monkeypatch.setattr(KeyStore, "__init__", init)
 
 
-def trust_data(path: str):
-    with open(path, "r") as file:
-        return json.load(file)
+@pytest.mark.parametrize(
+    "data, role, class_, exception",
+    [
+        (fix.get_td("sample_root"), "root", "RootData", fix.no_exc()),
+        (fix.get_td("sample_snapshot"), "snapshot", "SnapshotData", fix.no_exc()),
+        (fix.get_td("sample_timestamp"), "timestamp", "TimestampData", fix.no_exc()),
+        (fix.get_td("sample_targets"), "targets", "TargetsData", fix.no_exc()),
+        (
+            fix.get_td("sample_releases"),
+            "targets/releases",
+            "TargetsData",
+            fix.no_exc(),
+        ),
+        ({}, "noclass", "", pytest.raises(exc.NoSuchClassError)),
+        (
+            fix.get_td("missing_keys_root"),
+            "root",
+            "RootData",
+            pytest.raises(exc.InvalidTrustDataFormatError),
+        ),
+        ([], "root", "RootData", pytest.raises(exc.InvalidTrustDataFormatError)),
+        ({}, "targets", "TargetsData", pytest.raises(exc.InvalidTrustDataFormatError)),
+        (
+            fix.get_td("wrong_time_timestamp"),
+            "timestamp",
+            "TimestampData",
+            pytest.raises(exc.InvalidTrustDataFormatError),
+        ),
+        (fix.get_td("sample3_targets"), "targets", "TargetsData", fix.no_exc()),
+        (fix.get_td("sample4_targets"), "targets", "TargetsData", fix.no_exc()),
+        (fix.get_td("sample7_targets"), "targets", "TargetsData", fix.no_exc()),
+        (fix.get_td("sample7_snapshot"), "snapshot", "SnapshotData", fix.no_exc()),
+    ],
+)
+def test_trust_data_init(m_trust_data, data: dict, role: str, class_: str, exception):
+    with exception:
+        trust_data_ = td.TrustData(data, role)
+        assert trust_data_.signed == data["signed"]
+        assert trust_data_.signatures == data["signatures"]
+        assert trust_data_.kind == role
+        assert class_ in str(type(trust_data_))
 
 
 @pytest.mark.parametrize(
-    "data, role, class_",
+    "data, role, exception",
     [
-        (trust_data("tests/data/sample_root.json"), "root", "RootData"),
-        (trust_data("tests/data/sample_snapshot.json"), "snapshot", "SnapshotData"),
-        (trust_data("tests/data/sample_timestamp.json"), "timestamp", "TimestampData"),
-        (trust_data("tests/data/sample_targets.json"), "targets", "TargetsData"),
+        (fix.get_td("sample_root"), "root", fix.no_exc()),
+        (fix.get_td("sample_snapshot"), "snapshot", fix.no_exc()),
+        (fix.get_td("sample_timestamp"), "timestamp", fix.no_exc()),
+        (fix.get_td("sample_targets"), "targets", fix.no_exc()),
+        (fix.get_td("sample_releases"), "targets/releases", fix.no_exc()),
+        (fix.get_td("wrong_signature"), "root", pytest.raises(exc.ValidationError)),
         (
-            trust_data("tests/data/sample_releases.json"),
-            "targets/releases",
-            "TargetsData",
+            fix.get_td("sample3_targets"),
+            "targets",
+            pytest.raises(exc.NotFoundException),
         ),
     ],
 )
-def test_trust_data(td, mock_schema_path, data: dict, role: str, class_: str):
-    trust_data_ = td.TrustData(data, role)
-
-    assert trust_data_.signed == data["signed"]
-    assert trust_data_.signatures == data["signatures"]
-    assert trust_data_.kind == role
-    assert class_ in str(type(trust_data_))
-
-
-def test_trust_data_error(td):
-    with pytest.raises(NoSuchClassError) as err:
-        td.TrustData({}, "trust")
-    assert str(err.value) == "could not find class with name trust."
+def test_validate_signature(
+    m_trust_data, sample_key_store, data: dict, role: str, exception
+):
+    with exception:
+        trust_data_ = td.TrustData(data, role)
+        assert trust_data_.validate_signature(sample_key_store) is None
 
 
 @pytest.mark.parametrize(
-    "trustdata, role",
+    "data, role, exception",
     [
-        (trust_data("tests/data/sample6_root.json"), "root"),
-        ([], "root"),
-        ({}, "targets"),
-        (trust_data("tests/data/sample3_timestamp.json"), "timestamp"),
+        (fix.get_td("sample_root"), "root", fix.no_exc()),
+        (fix.get_td("sample_snapshot"), "snapshot", fix.no_exc()),
+        (fix.get_td("sample_timestamp"), "timestamp", fix.no_exc()),
+        (fix.get_td("sample_targets"), "targets", fix.no_exc()),
+        (fix.get_td("sample_releases"), "targets/releases", fix.no_exc()),
+        (fix.get_td("sample3_targets"), "targets", pytest.raises(exc.ValidationError)),
     ],
 )
-def test_validate_schema_error(td, mock_schema_path, trustdata: dict, role: str):
-    with pytest.raises(ValidationError) as err:
-        td.TrustData(trustdata, role)
-    assert "trust data has invalid format." in str(err.value)
+def test_validate_hash(
+    m_trust_data, sample_key_store, data: dict, role: str, exception
+):
+    with exception:
+        trust_data_ = td.TrustData(data, role)
+        assert trust_data_.validate_hash(sample_key_store) is None
 
 
 @pytest.mark.parametrize(
-    "trustdata, role",
+    "data, role, delta, exception",
     [
-        (trust_data("tests/data/sample_root.json"), "root"),
-        (trust_data("tests/data/sample_snapshot.json"), "snapshot"),
-        (trust_data("tests/data/sample_timestamp.json"), "timestamp"),
-        (trust_data("tests/data/sample3_targets.json"), "targets"),
-        (trust_data("tests/data/sample4_targets.json"), "targets"),
-        (trust_data("tests/data/sample7_targets.json"), "targets"),
-        (trust_data("tests/data/sample7_snapshot.json"), "snapshot"),
+        (fix.get_td("sample_snapshot"), "snapshot", 1, fix.no_exc()),
+        (fix.get_td("sample_timestamp"), "timestamp", 1, fix.no_exc()),
+        (fix.get_td("sample4_targets"), "targets", 1, fix.no_exc()),
+        (
+            fix.get_td("sample4_targets"),
+            "targets",
+            -1,
+            pytest.raises(exc.ValidationError),
+        ),
     ],
 )
-def test_validate_schema(td, mock_schema_path, trustdata: dict, role: str):
-    data = td.TrustData(trustdata, role)
+def test_validate_trust_data_expiry(m_trust_data, data, role, delta, exception):
+    with exception:
+        trust_data_ = td.TrustData(data, role)
+        time = dt.datetime.now(pytz.utc) + dt.timedelta(hours=delta)
+        time_format = "%Y-%m-%dT%H:%M:%S.%f%z"
+        trust_data_.signed["expires"] = time.strftime(time_format)
 
-
-@pytest.mark.parametrize(
-    "data, role",
-    [
-        (trust_data("tests/data/sample_root.json"), "root"),
-        (trust_data("tests/data/sample_snapshot.json"), "snapshot"),
-        (trust_data("tests/data/sample_timestamp.json"), "timestamp"),
-        (trust_data("tests/data/sample_targets.json"), "targets"),
-        (trust_data("tests/data/sample_releases.json"), "targets/releases"),
-    ],
-)
-def test_validate_signature(td, mock_schema_path, mock_keystore, data: dict, role: str):
-    ks = KeyStore()
-    trust_data_ = td.TrustData(data, role)
-    assert trust_data_.validate_signature(ks) is None
-
-
-def test_validate_signature_error(td, mock_schema_path, mock_keystore):
-    data = trust_data("tests/data/sample_root.json")
-    data["signatures"][0]["sig"] = "Q" + data["signatures"][0]["sig"][1:]
-    trust_data_ = td.TrustData(data, "root")
-    ks = KeyStore()
-
-    with pytest.raises(ValidationError) as err:
-        trust_data_.validate_signature(ks)
-    assert "failed to verify signature of trust data." in str(err.value)
-
-
-@pytest.mark.parametrize(
-    "data, role",
-    [
-        (trust_data("tests/data/sample_root.json"), "root"),
-        (trust_data("tests/data/sample_snapshot.json"), "snapshot"),
-        (trust_data("tests/data/sample_timestamp.json"), "timestamp"),
-        (trust_data("tests/data/sample_targets.json"), "targets"),
-        (trust_data("tests/data/sample_releases.json"), "targets/releases"),
-    ],
-)
-def test_validate_hash(td, mock_schema_path, mock_keystore, data: dict, role: str):
-    ks = KeyStore()
-    trust_data_ = td.TrustData(data, role)
-    assert trust_data_.validate_hash(ks) is None
-
-
-def test_validate_hash_error(td, mock_schema_path, mock_keystore):
-    data = trust_data("tests/data/sample_root.json")
-    data["signatures"][0]["sig"] = "Q" + data["signatures"][0]["sig"][1:]
-    trust_data_ = td.TrustData(data, "root")
-    ks = KeyStore()
-
-    with pytest.raises(ValidationError) as err:
-        trust_data_.validate_hash(ks)
-    assert "failed validating trust data hash." in str(err.value)
-
-
-@pytest.mark.parametrize(
-    "data, role",
-    [
-        (trust_data("tests/data/sample_snapshot.json"), "snapshot"),
-        (trust_data("tests/data/sample_timestamp.json"), "timestamp"),
-        (trust_data("tests/data/sample4_targets.json"), "targets"),
-    ],
-)
-def test_validate_trust_data_expiry(td, mock_schema_path, data: dict, role: str):
-    trust_data_ = td.TrustData(data, role)
-    time = dt.datetime.now(pytz.utc) + dt.timedelta(hours=1)
-    time_format = "%Y-%m-%dT%H:%M:%S.%f%z"
-    trust_data_.signed["expires"] = time.strftime(time_format)
-
-    assert trust_data_.validate_expiry() is None
-
-
-@pytest.mark.parametrize(
-    "data, role",
-    [(trust_data("tests/data/sample_timestamp.json"), "timestamp")],
-)
-def test_validate_trust_data_expiry_error(td, mock_schema_path, data: dict, role: str):
-    trust_data_ = td.TrustData(data, role)
-    time = dt.datetime.now(pytz.utc) - dt.timedelta(hours=1)
-    time_format = "%Y-%m-%dT%H:%M:%S.%f%z"
-    trust_data_.signed["expires"] = time.strftime(time_format)
-
-    with pytest.raises(ValidationError) as err:
-        trust_data_.validate_expiry()
-    assert "trust data expired." in str(err.value)
+        assert trust_data_.validate_expiry() is None
 
 
 @pytest.mark.parametrize(
     "data, role, keys",
     [
-        (trust_data("tests/data/sample_root.json"), "root", pub_root_keys),
-        (trust_data("tests/data/sample_snapshot.json"), "snapshot", {}),
-        (trust_data("tests/data/sample_timestamp.json"), "timestamp", {}),
-        (trust_data("tests/data/sample_targets.json"), "targets", targets_keys),
-        (trust_data("tests/data/sample_releases.json"), "targets/releases", {}),
-        (trust_data("tests/data/sample5_root.json"), "root", pub_root_keys_sample5),
+        (fix.get_td("sample_root"), "root", pub_root_keys),
+        (fix.get_td("sample_snapshot"), "snapshot", {}),
+        (fix.get_td("sample_timestamp"), "timestamp", {}),
+        (fix.get_td("sample_targets"), "targets", targets_keys),
+        (fix.get_td("sample_releases"), "targets/releases", {}),
+        (fix.get_td("sample5_root"), "root", pub_root_keys_sample5),
     ],
 )
-def test_get_keys(td, mock_schema_path, data: dict, role: str, keys: dict):
+def test_get_keys(m_trust_data, data: dict, role: str, keys: dict):
     trust_data_ = td.TrustData(data, role)
     assert trust_data_.get_keys() == keys
 
@@ -450,14 +392,14 @@ def test_get_keys(td, mock_schema_path, data: dict, role: str, keys: dict):
 @pytest.mark.parametrize(
     "data, role, hashes",
     [
-        (trust_data("tests/data/sample_root.json"), "root", {}),
-        (trust_data("tests/data/sample_snapshot.json"), "snapshot", snapshot_hashes),
-        (trust_data("tests/data/sample_timestamp.json"), "timestamp", timestamp_hashes),
-        (trust_data("tests/data/sample_targets.json"), "targets", {}),
-        (trust_data("tests/data/sample_releases.json"), "targets/releases", {}),
+        (fix.get_td("sample_root"), "root", {}),
+        (fix.get_td("sample_snapshot"), "snapshot", snapshot_hashes),
+        (fix.get_td("sample_timestamp"), "timestamp", timestamp_hashes),
+        (fix.get_td("sample_targets"), "targets", {}),
+        (fix.get_td("sample_releases"), "targets/releases", {}),
     ],
 )
-def test_get_hashes(td, mock_schema_path, data: dict, role: str, hashes: dict):
+def test_get_hashes(m_trust_data, data: dict, role: str, hashes: dict):
     trust_data_ = td.TrustData(data, role)
     assert trust_data_.get_hashes() == hashes
 
@@ -465,11 +407,11 @@ def test_get_hashes(td, mock_schema_path, data: dict, role: str, hashes: dict):
 @pytest.mark.parametrize(
     "data, out",
     [
-        (trust_data("tests/data/sample_targets.json"), True),
-        (trust_data("tests/data/sample2_targets.json"), False),
+        (fix.get_td("sample_targets"), True),
+        (fix.get_td("sample2_targets"), False),
     ],
 )
-def test_has_delegation(td, mock_schema_path, data: dict, out: bool):
+def test_has_delegation(m_trust_data, data: dict, out: bool):
     trust_data_ = td.TrustData(data, "targets")
     assert trust_data_.has_delegations() == out
 
@@ -478,13 +420,13 @@ def test_has_delegation(td, mock_schema_path, data: dict, out: bool):
     "data, out",
     [
         (
-            trust_data("tests/data/sample_targets.json"),
+            fix.get_td("sample_targets"),
             ["targets/phbelitz", "targets/releases", "targets/chamsen"],
         ),
-        (trust_data("tests/data/sample2_targets.json"), []),
+        (fix.get_td("sample2_targets"), []),
     ],
 )
-def test_get_delegations(td, mock_schema_path, data: dict, out: list):
+def test_get_delegations(m_trust_data, data: dict, out: list):
     trust_data = td.TrustData(data, "targets")
     assert trust_data.get_delegations() == out
 
@@ -492,105 +434,63 @@ def test_get_delegations(td, mock_schema_path, data: dict, out: list):
 @pytest.mark.parametrize(
     "data, out",
     [
-        (trust_data("tests/data/sample_targets.json"), []),
-        (trust_data("tests/data/sample2_targets.json"), ["hai"]),
+        (fix.get_td("sample_targets"), []),
+        (fix.get_td("sample2_targets"), ["hai"]),
         (
-            trust_data("tests/data/sample3_targets.json"),
+            fix.get_td("sample3_targets"),
             ["v1.0.9", "v1.0.9-slim-fat_image", "v382"],
         ),
     ],
 )
-def test_get_tags(td, mock_schema_path, data: dict, out: list):
+def test_get_tags(m_trust_data, data: dict, out: list):
     trust_data = td.TrustData(data, "targets")
     assert list(trust_data.get_tags()) == out
 
 
 @pytest.mark.parametrize(
-    "data, tag, digest",
+    "data, tag, digest, exception",
     [
         (
-            trust_data("tests/data/sample2_targets.json"),
+            fix.get_td("sample2_targets"),
             "hai",
             "kZGRnKhqiPDULOLq2jx8VFuSvl7n+x8jpWHoFNx4uMI=",
+            fix.no_exc(),
         ),
         (
-            trust_data("tests/data/sample_releases.json"),
+            fix.get_td("sample_releases"),
             "v1",
             "E4irx6ElMoNsOoG9sAh0CbFSCPWuunqHrtz9VtY3wUU=",
+            fix.no_exc(),
         ),
         (
-            trust_data("tests/data/sample_releases.json"),
+            fix.get_td("sample_releases"),
             "v2",
             "uKOFIodqniVQ1YLOUaHYfr3GxXDl5YXQhWC/1kb3+AQ=",
+            fix.no_exc(),
         ),
         (
-            trust_data("tests/data/sample3_targets.json"),
+            fix.get_td("sample3_targets"),
             "v1.0.9-slim-fat_image",
             "VI55/vvzrpsAqPDn1nClK32rr5DYwz41SF7TsoFnGbQ=",
+            fix.no_exc(),
+        ),
+        (
+            fix.get_td("sample2_targets"),
+            "missingtag",
+            "",
+            pytest.raises(exc.NotFoundException),
         ),
     ],
 )
-def test_get_digest(td, mock_schema_path, data: dict, tag: str, digest: str):
-    trust_data = td.TrustData(data, "targets")
-    assert trust_data.get_digest(tag) == digest
+def test_get_digest(m_trust_data, data: dict, tag: str, digest: str, exception):
+    with exception:
+        trust_data = td.TrustData(data, "targets")
+        assert trust_data.get_digest(tag) == digest
 
 
-def test_get_digest_error(td, mock_schema_path):
-    _trust_data = td.TrustData(trust_data("tests/data/sample2_targets.json"), "targets")
-    with pytest.raises(NotFoundException) as err:
-        _trust_data.get_digest("hurr")
-    assert 'could not find digest for tag "hurr".' in str(err.value)
-
-
-# This test will fail in January 2023 due to the expiry date in the test data
-# TODO: Autogenerate test data with "up-to-date" expiry dates
-@pytest.mark.parametrize(
-    "data, role", [(trust_data("tests/data/sample_snapshot.json"), "snapshot")]
-)
-def test_validate(td, mock_schema_path, mock_keystore, data: dict, role: str):
-    ks = KeyStore()
+# # This test will fail in January 2023 due to the expiry date in the test data
+# # TODO: Autogenerate test data with "up-to-date" expiry dates
+@pytest.mark.parametrize("data, role", [(fix.get_td("sample_snapshot"), "snapshot")])
+def test_validate(m_trust_data, sample_key_store, data: dict, role: str):
     _trust_data = td.TrustData(data, role)
-    _trust_data.validate(ks)
-
-
-@pytest.mark.parametrize(
-    "data, role",
-    [
-        (trust_data("tests/data/sample_timestamp.json"), "timestamp"),
-        (trust_data("tests/data/sample5_targets.json"), "targets"),
-    ],
-)
-def test_validate_for_expiry_error(
-    td, mock_schema_path, mock_keystore, data: dict, role: str
-):
-    ks = KeyStore()
-    _trust_data = td.TrustData(data, role)
-    with pytest.raises(ValidationError) as err:
-        _trust_data.validate(ks)
-    assert "trust data expired." in str(err.value)
-
-
-@pytest.mark.parametrize(
-    "data, role", [(trust_data("tests/data/sample4_targets.json"), "targets")]
-)
-def test_validation_for_missing_key_error(
-    td, mock_schema_path, mock_keystore, data: dict, role: str
-):
-    ks = KeyStore()
-    _trust_data = td.TrustData(data, role)
-    with pytest.raises(NotFoundException) as err:
-        _trust_data.validate(ks)
-    assert "could not find key id" in str(err.value)
-
-
-@pytest.mark.parametrize(
-    "data, role", [(trust_data("tests/data/sample3_targets.json"), "targets")]
-)
-def test_validation_for_signature_validation_error(
-    td, mock_schema_path, mock_keystore, data: dict, role: str
-):
-    ks = KeyStore()
-    _trust_data = td.TrustData(data, role)
-    with pytest.raises(ValidationError) as err:
-        _trust_data.validate(ks)
-    assert "failed to verify signature of trust data." in str(err.value)
+    _trust_data.validate(sample_key_store)
