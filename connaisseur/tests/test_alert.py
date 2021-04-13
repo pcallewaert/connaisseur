@@ -421,17 +421,18 @@ def test_send_alerts(
     admission_request: dict,
 ):
     mock_alert = mocker.patch("connaisseur.alert.Alert")
-    send_alerts(AdmissionRequest(admission_request), admitted=True)
+    admission_request_instance = AdmissionRequest(admission_request)
+    send_alerts(admission_request_instance, admitted=True)
     admit_calls = [
         mocker.call(
             "CONNAISSEUR admitted a request.",
             opsgenie_receiver_config_throw,
-            admission_request_deployment,
+            admission_request_instance,
         ),
         mocker.call(
             "CONNAISSEUR admitted a request.",
             slack_receiver_config,
-            admission_request_deployment,
+            admission_request_instance,
         ),
     ]
     mock_alert.assert_has_calls(admit_calls, any_order=True)
@@ -442,7 +443,7 @@ def test_send_alerts(
     )
     mock_alert = mocker.patch("connaisseur.alert.Alert")
     send_alerts(
-        AdmissionRequest(admission_request),
+        admission_request_instance,
         admitted=False,
         reason="Couldn't find trust data.",
     )
@@ -450,12 +451,12 @@ def test_send_alerts(
         mocker.call(
             "CONNAISSEUR rejected a request: Couldn't find trust data.",
             opsgenie_receiver_config,
-            admission_request_deployment,
+            admission_request_instance,
         ),
         mocker.call(
             "CONNAISSEUR rejected a request: Couldn't find trust data.",
             keybase_receiver_config,
-            admission_request_deployment,
+            admission_request_instance,
         ),
     ]
     mock_alert.assert_has_calls(reject_calls, any_order=True)
