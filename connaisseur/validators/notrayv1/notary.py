@@ -4,8 +4,8 @@ from urllib.parse import quote, urlencode
 import requests
 import yaml
 from connaisseur.image import Image
-from connaisseur.tuf_role import TUFRole
-from connaisseur.trust_data import TrustData
+from connaisseur.validators.notrayv1.tuf_role import TUFRole
+from connaisseur.validators.notrayv1.trust_data import TrustData
 from connaisseur.exceptions import (
     UnreachableError,
     NotFoundException,
@@ -23,9 +23,10 @@ class Notary:
     pub_root_keys: list
     is_acr: bool
     is_cosign: bool
+    auth: dict
+    selfsigned_cert: str
 
-    SELFSIGNED_PATH = "/etc/certs/{}.crt"
-    AUTH_PATH = "/etc/creds/{}/cred.yaml"
+    SELFSIGNED_PATH = "/app/connaisseur/certs/{}.crt"
 
     def __init__(self, name: str, host: str, pub_root_keys: list, **kwargs):
         """
@@ -49,6 +50,26 @@ class Notary:
         self.pub_root_keys = pub_root_keys
         self.is_acr = kwargs.get("is_acr", False)
         self.is_cosign = kwargs.get("is_cosign", False)
+        self.auth = kwargs.get("auth", {})
+        self.selfsigned_cert = self.__create_selfsigned_cert(kwargs.get("cert"))
+
+    def __create_selfsigned_cert(self, cert: str):
+        if not cert:
+            return None
+
+        cert_path = self.SELFSIGNED_PATH.format(self.name)
+
+        if not safe_path_func(os.path.exists, "/app/connaisseur/certs", cert_path):
+            safe_path_func(
+                os.makedirs,
+                "/app/connaisseur/certs",
+                os.path.dirname(cert_path),
+                exist_ok=True,
+            )
+            with safe_path_func(open, "/app/connaisseur/certs", cert_path, "w") as file:
+                file.write(cert)
+
+        return cert_path
 
     def get_key(self, key_name: str = None):
         """
@@ -76,43 +97,6 @@ class Notary:
             raise NotFoundException(
                 message=msg, key_name=key_name, notary_name=self.name
             ) from err
-
-    @property
-    def auth(self):
-        """
-        Returns authentication credentials as a dict. If notary configuration has no
-        authentication, an empty dict is returned. Otherwise a YAML file with the
-        credentials is read and returned.
-
-        Raises `InvalidFormatException` if credential file has an invalid format.
-        """
-        try:
-            with safe_path_func(
-                open, "/etc/creds/", self.AUTH_PATH.format(self.name), "r"
-            ) as cred_file:
-                auth = yaml.safe_load(cred_file)
-
-                try:
-                    return auth["USER"], auth["PASS"]
-                except KeyError as err:
-                    msg = (
-                        "credentials for notary config "
-                        "{notary_name} are in wrong format."
-                    )
-                    raise InvalidFormatException(
-                        message=msg, notary_name=self.name
-                    ) from err
-        except FileNotFoundError:
-            return None
-
-    @property
-    def selfsigned_cert(self):
-        """
-        Returns the path to a selfsigned certificate, should it exist. Otherwise None is
-        returned.
-        """
-        path = self.SELFSIGNED_PATH.format(self.name)
-        return path if safe_path_func(os.path.exists, "/etc/certs/", path) else None
 
     @property
     def healthy(self):
@@ -283,6 +267,3 @@ class Notary:
                 auth_url=url,
             )
         return token
-
-    def __str__(self):
-        return self.name

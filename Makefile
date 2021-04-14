@@ -37,4 +37,4 @@ upgrade:
 	helm upgrade connaisseur helm --wait --set alerting.cluster=$(CLUSTER)
 
 annihilate:
-	kubectl delete all,mutatingwebhookconfigurations,clusterroles,clusterrolebindings,configmaps,imagepolicies,secrets -lapp.kubernetes.io/instance=connaisseur
+	kubectl delete all,mutatingwebhookconfigurations,clusterroles,clusterrolebindings,configmaps,imagepolicies,secrets,serviceaccounts -lapp.kubernetes.io/instance=connaisseur

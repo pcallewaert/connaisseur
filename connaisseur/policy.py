@@ -8,6 +8,7 @@ from connaisseur.exceptions import (
     InvalidPolicyFormatError,
     NoMatchingPolicyRuleError,
 )
+import logging
 
 
 class ImagePolicy:
@@ -75,16 +76,15 @@ class ImagePolicy:
             filter(lambda x: x["pattern"] == best_match.key, self.policy["rules"]), None
         )
 
+        logging.debug(f"MOST SPECIFIC RULE: {str(most_specific_rule)}")
         return Rule(**most_specific_rule)
 
 
 class Rule:
     def __init__(self, pattern: str, **kwargs):
         self.pattern = pattern
-        self.verify = kwargs.get("verify", True)
-        self.delegations = kwargs.get("delegations", [])
-        self.notary = kwargs.get("notary")
-        self.key = kwargs.get("key")
+        self.validator = kwargs.get("validator")
+        self.arguments = kwargs.get("with", {})
 
     def __str__(self):
         return self.pattern

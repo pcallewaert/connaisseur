@@ -8,7 +8,7 @@ from dateutil import parser
 from jsonschema import validate as json_validate
 from jsonschema import ValidationError as JValidationError
 from jsonschema import FormatChecker as JFormatChecker
-from connaisseur.key_store import KeyStore
+from connaisseur.validators.notrayv1.key_store import KeyStore
 from connaisseur.crypto import verify_signature
 from connaisseur.exceptions import (
     ValidationError,

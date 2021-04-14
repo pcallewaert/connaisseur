@@ -1,3 +1,4 @@
+from connaisseur.image import Image
 from connaisseur.admission_request import AdmissionRequest
 
 
@@ -8,10 +9,17 @@ class ValidatorInterface:
         """
         pass
 
-    def validate(self, admission_request: AdmissionRequest, **kwargs) -> list:
+    def validate(self, image: Image, **kwargs) -> str:
         """
         Validates an admission request, using the extra arguments from the image policy.
 
         Returns a list of trusted digests.
         """
         raise NotImplementedError
+
+    @property
+    def healthy(self):
+        return True
+
+    def __str__(self):
+        return self.name

@@ -1,3 +1,4 @@
+import os
 import collections
 import json
 import yaml
@@ -6,7 +7,8 @@ from connaisseur.exceptions import (
     NotFoundException,
     InvalidConfigurationFormatError,
 )
-from connaisseur.notary import Notary
+from connaisseur.validators.validator import Validator
+from connaisseur.util import safe_path_func
 
 
 class Config:
@@ -14,14 +16,16 @@ class Config:
     Config Object, that contains all notary configurations inside a list.
     """
 
-    path = "/etc/connaisseur-config/config.yaml"
+    path = "/app/connaisseur-config/config.yaml"
+    secrets_path = "/app/connaisseur-config/config-secrets.yaml"
+    external_path = "/app/connaisseur-config/"
     schema_path = "/app/connaisseur/res/config_schema.json"
-    notaries: list = []
+    validators: list = []
 
     def __init__(self):
         """
-        Creates a Config object, containing all notary configurations. It does so by
-        reading a config file, doing input validation and then creating Notary objects,
+        Creates a Config object, containing all validator configurations. It does so by
+        reading a config file, doing input validation and then creating Validator objects,
         storing them in a list.
 
         Raises `NotFoundException` if the configuration file is not found.
@@ -31,13 +35,30 @@ class Config:
         with open(self.path, "r") as configfile:
             config_content = yaml.safe_load(configfile)
 
-        if not config_content:
+        with open(self.secrets_path, "r") as secrets_configfile:
+            secrets_config_content = yaml.safe_load(secrets_configfile)
+
+        config = self.__merge_configs(config_content, secrets_config_content)
+
+        self.__validate(config)
+
+        self.validators = [Validator(**validator) for validator in config]
+
+    def __merge_configs(self, config: dict, secrets_config: dict):
+        if not config:
             msg = "Error loading connaisseur config file."
             raise NotFoundException(message=msg)
 
-        self.__validate(config_content)
-
-        self.notaries = [Notary(**notary) for notary in config_content]
+        for validator in config:
+            validator.update(secrets_config.get(validator.get("name"), {}))
+            auth_path = f'{self.external_path}{validator["name"]}/auth.yaml'
+            if safe_path_func(os.path.exists, self.external_path, auth_path):
+                with safe_path_func(
+                    open, self.external_path, auth_path, "r"
+                ) as auth_file:
+                    auth_dict = {"auth": yaml.safe_load(auth_file)}
+                validator.update(auth_dict)
+        return config
 
     def __validate(self, config: dict):
         with open(self.schema_path, "r") as schema_file:
@@ -45,18 +66,21 @@ class Config:
 
         try:
             validate(instance=config, schema=schema)
-            notary_names = [notary.get("name") for notary in config]
-            if collections.Counter(notary_names)["default"] > 1:
-                msg = "Too many default notary configurations."
+            validator_names = [validator.get("name") for validator in config]
+            if collections.Counter(validator_names)["default"] > 1:
+                msg = "Too many default validator configurations."
                 raise InvalidConfigurationFormatError(message=msg)
 
-            for notary in config:
-                key_names = [key.get("name") for key in notary.get("pub_root_keys")]
-                if collections.Counter(key_names)["default"] > 1:
-                    msg = "Too many default keys in notary configuration {notary_name}."
-                    raise InvalidConfigurationFormatError(
-                        message=msg, notary_name=notary.get("name")
-                    )
+            # for validator in config:
+            #     key_names = [key.get("name") for key in validator.get("root_keys")]
+            #     if collections.Counter(key_names)["default"] > 1:
+            #         msg = (
+            #             "Too many default keys in validator "
+            #             "configuration {validator_name}."
+            #         )
+            #         raise InvalidConfigurationFormatError(
+            #             message=msg, validator_name=validator.get("name")
+            #         )
         except ValidationError as err:
             msg = "{validation_kind} has an invalid format: {validation_err}."
             raise InvalidConfigurationFormatError(
@@ -65,26 +89,27 @@ class Config:
                 validation_err=str(err),
             ) from err
 
-        self.notaries = [Notary(**notary) for notary in config]
-
-    def get_notary(self, notary_name: str = None):
+    def get_validator(self, validator_name: str = None):
         """
-        Returns the notary configuration with the given `notary_name`. If `notary_name`
-        is None, the element with `name=default` is taken, or the only existing element.
+        Returns the validator configuration with the given `validator_name`. If
+        `validator_name` is None, the element with `name=default` is taken, or the only
+        existing element.
 
         Raises `NotFoundException` if no matching or default element can be found.
         """
         try:
-            if len(self.notaries) < 2:
-                return next(iter(self.notaries))
+            if len(self.validators) < 2:
+                return next(iter(self.validators))
 
-            notary_name = notary_name or "default"
+            validator_name = validator_name or "default"
             return next(
-                notary for notary in self.notaries if notary.name == notary_name
+                validator
+                for validator in self.validators
+                if validator.name == validator_name
             )
         except StopIteration as err:
-            if len(self.notaries) < 2:
-                msg = "No notary configurations could be found."
+            if len(self.validators) < 2:
+                msg = "No validator configurations could be found."
             else:
-                msg = "Unable to find notary configuration {notary_name}."
-            raise NotFoundException(message=msg, notary_name=notary_name) from err
+                msg = "Unable to find validator configuration {validator_name}."
+            raise NotFoundException(message=msg, validator_name=validator_name) from err

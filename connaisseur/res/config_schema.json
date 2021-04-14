@@ -12,7 +12,8 @@
                 "enum": [
                     "notaryv1",
                     "notaryv2",
-                    "cosign"
+                    "cosign",
+                    "static"
                 ]
             }
         },
@@ -59,7 +60,8 @@
                             "type": "boolean"
                         },
                         "selfsigned_cert": {
-                            "type": "string"
+                            "type": "string",
+                            "pattern": "(?:-+BEGIN\\sCERTIFICATE[-]+)\n(?:(?:[A-Za-z0-9+\/\\s])*={0,4})\n(?:-+END\\sCERTIFICATE[-]+)"
                         },
                         "auth": {
                             "type": "object",
@@ -116,6 +118,23 @@
                     }
                 },
                 "then": {}
+            },
+            {
+                "if": {
+                    "properties": {
+                        "type": {
+                            "const": "static"
+                        }
+                    }
+                },
+                "then": {
+                    "properties": {
+                        "approve": {
+                            "type": "boolean"
+                        }
+                    },
+                    "required": ["approve"]
+                }
             }
         ]
     },
