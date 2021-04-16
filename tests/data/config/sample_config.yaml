@@ -1,4 +1,5 @@
 - name: default
+  type: notaryv1
   host: notary.docker.io
   pub_root_keys:
     - name: default
@@ -15,6 +16,7 @@
         -----END PUBLIC KEY-----
 # private notary
 - name: harbor
+  type: notaryv1
   host: notary.harbor.domain
   selfsigned_cert: |
     -----BEGIN CERTIFICATE-----
@@ -36,12 +38,16 @@
     hMC42zeU+yxxy3vukMa4xX2BGzyjAg+qaDh6YwWui80r2/BlYXvSsSl3dIgtVwL4
     DSo1s+3uJ4evVKDRf3vLwKLTtiYfd20=
     -----END CERTIFICATE-----
-  pub_root_keys:
-    - name: library
-      key: |
-        -----BEGIN PUBLIC KEY-----
-        MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEH+G0yM9CQ8KjN2cF8iHpiTA9Q69q
-        3brrzLkY1kjmRNOs0c2sx2nm8j2hFZRbyaVsd52Mkw0k5WrX+9vBfbjtdQ==
-        -----END PUBLIC KEY-----
-  auth:
-    secretName: harbor-creds
+  root_keys:
+  - name: library
+    key: |
+      -----BEGIN PUBLIC KEY-----
+      MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEH+G0yM9CQ8KjN2cF8iHpiTA9Q69q
+      3brrzLkY1kjmRNOs0c2sx2nm8j2hFZRbyaVsd52Mkw0k5WrX+9vBfbjtdQ==
+      -----END PUBLIC KEY-----
+- name: allow
+  type: static
+  approve: True
+- name: deny
+  type: static
+  approve: False

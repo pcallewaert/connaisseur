@@ -3,13 +3,13 @@ import json
 import pytest
 import requests
 import connaisseur.kube_api
-import connaisseur.trust_data
 import connaisseur.policy
-import connaisseur.key_store as ks
-import connaisseur.notary as no
 import connaisseur.config as co
 import connaisseur.admission_request as admreq
 import connaisseur.alert as alert
+import connaisseur.validators.notrayv1.trust_data as td
+import connaisseur.validators.notrayv1.key_store as ks
+import connaisseur.validators.notrayv1.notary as no
 from contextlib import contextmanager
 
 
@@ -185,8 +185,8 @@ def m_request(monkeypatch):
 
 @pytest.fixture
 def m_trust_data():
-    connaisseur.trust_data.TrustData.schema_path = "res/{}_schema.json"
-    connaisseur.trust_data.TargetsData.schema_path = "res/targets_schema.json"
+    td.TrustData.schema_path = "connaisseur/res/{}_schema.json"
+    td.TargetsData.schema_path = "connaisseur/res/targets_schema.json"
 
 
 @pytest.fixture
@@ -194,9 +194,7 @@ def m_expiry(monkeypatch):
     def mock_expiry(self):
         pass
 
-    monkeypatch.setattr(
-        connaisseur.trust_data.TrustData, "validate_expiry", mock_expiry
-    )
+    monkeypatch.setattr(td.TrustData, "validate_expiry", mock_expiry)
 
 
 @pytest.fixture
@@ -206,7 +204,7 @@ def m_policy():
             "rules": [
                 {
                     "pattern": "*:*",
-                    "verify": True,
+                    "validator": "",
                     "delegations": ["phbelitz", "chamsen"],
                 },
                 {
@@ -260,7 +258,7 @@ def sample_key_store(m_trust_data):
     )
     k = ks.KeyStore(sample_key)
     for role in ("root", "targets", "snapshot", "timestamp"):
-        k.update(connaisseur.trust_data.TrustData(get_td(f"sample_{role}"), role))
+        k.update(td.TrustData(get_td(f"sample_{role}"), role))
     return k
 
 
@@ -273,36 +271,22 @@ def alice_key_store(m_trust_data):
     )
     k = ks.KeyStore(sample_key)
     for role in ("root", "targets", "snapshot", "timestamp"):
-        k.update(connaisseur.trust_data.TrustData(get_td(f"alice-image/{role}"), role))
+        k.update(td.TrustData(get_td(f"alice-image/{role}"), role))
     return k
 
 
 @pytest.fixture
 def m_notary(monkeypatch):
-    def mock_init(self, name: str, host: str, pub_root_keys: list, **kwargs):
-        self.name = name
-        self.host = host
-        self.pub_root_keys = pub_root_keys
-        self.is_acr = kwargs.get("is_acr", False)
-        self.is_cosign = kwargs.get("is_cosign", False)
-        self.auth = kwargs.get("auth")
-        self.selfsigned_cert = kwargs.get("selfsigned_cert")
-
-    def mock_auth(self):
-        return self.auth
-
-    def mock_selfsigned_cert(self):
-        return self.selfsigned_cert
+    def mock_selfsigned_cert(self, cert):
+        return f"tests/data/notary/{self.name}.cert" if cert else None
 
     def mock_healthy(self):
         return True
 
-    monkeypatch.setattr(connaisseur.notary.Notary, "__init__", mock_init)
-    monkeypatch.setattr(connaisseur.notary.Notary, "auth", mock_auth)
+    monkeypatch.setattr(no.Notary, "healthy", mock_healthy)
     monkeypatch.setattr(
-        connaisseur.notary.Notary, "selfsigned_cert", mock_selfsigned_cert
+        no.Notary, "_Notary__create_selfsigned_cert", mock_selfsigned_cert
     )
-    monkeypatch.setattr(connaisseur.notary.Notary, "healthy", mock_healthy)
 
 
 @pytest.fixture
@@ -337,7 +321,7 @@ def sample_notary(m_notary):
 
 @pytest.fixture()
 def m_ad_schema_path():
-    admreq.AdmissionRequest.SCHEMA_PATH = "res/ad_request_schema.json"
+    admreq.AdmissionRequest.SCHEMA_PATH = "connaisseur/res/ad_request_schema.json"
 
 
 @pytest.fixture

@@ -1,24 +1,30 @@
 import pytest
-import conftest as fix
+from . import conftest as fix
 import connaisseur.config as co
 import connaisseur.exceptions as exc
+import connaisseur.validators as vals
 
 
 @pytest.fixture(autouse=True)
 def mock_config_path():
     co.Config.path = "tests/data/config/sample_config.yaml"
-    co.Config.schema_path = "res/config_schema.json"
+    co.Config.secrets_path = "tests/data/config/sample_secrets.yaml"
+    co.Config.schema_path = "connaisseur/res/config_schema.json"
 
 
+nv1 = vals.notrayv1.notaryv1_validator.NotaryV1Validator
+static = vals.static.static_validator.StaticValidator
 static_config = [
     {
         "name": "default",
-        "host": "notary.docker.io",
+        "type": nv1,
     },
     {
         "name": "harbor",
-        "host": "notary.harbor.domain",
+        "type": nv1,
     },
+    {"name": "allow", "type": static},
+    {"name": "deny", "type": static},
 ]
 
 
@@ -45,22 +51,22 @@ def test_config(config_path, exception):
     co.Config.path = f"tests/data/config/{config_path}.yaml"
     with exception:
         config = co.Config()
-        assert len(config.notaries) == 2
-        for index, notary in enumerate(config.notaries):
-            assert notary.name == static_config[index]["name"]
-            assert notary.host == static_config[index]["host"]
+        assert len(config.validators) == 4
+        for index, validator in enumerate(config.validators):
+            assert validator.name == static_config[index]["name"]
+            assert isinstance(validator, static_config[index]["type"])
 
 
 @pytest.mark.parametrize(
-    "key_name, host, exception",
+    "key_name, name, exception",
     [
-        ("default", "notary.docker.io", fix.no_exc()),
-        ("harbor", "notary.harbor.domain", fix.no_exc()),
-        (None, "notary.docker.io", fix.no_exc()),
+        ("default", "default", fix.no_exc()),
+        ("harbor", "harbor", fix.no_exc()),
+        (None, "default", fix.no_exc()),
         ("harborr", "", pytest.raises(exc.NotFoundException)),
     ],
 )
-def test_get_notary(key_name, host, exception):
+def test_get_notary(key_name, name, exception):
     config = co.Config()
     with exception:
-        assert config.get_notary(key_name).host == host
+        assert config.get_validator(key_name).name == name

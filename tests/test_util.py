@@ -5,18 +5,6 @@ import connaisseur.exceptions as exc
 
 
 @pytest.mark.parametrize(
-    "delegation_role, out",
-    [
-        ("phbelitz", "targets/phbelitz"),
-        ("chamsen", "targets/chamsen"),
-        ("targets/releases", "targets/releases"),
-    ],
-)
-def test_normalize_delegation(delegation_role: str, out: str):
-    assert ut.normalize_delegation(delegation_role) == out
-
-
-@pytest.mark.parametrize(
     "path, exception",
     [
         ("/etc/passwd", fix.no_exc()),

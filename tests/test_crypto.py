@@ -1,7 +1,7 @@
 import pytest
 import json
 import base64
-import conftest as fix
+from . import conftest as fix
 import connaisseur.crypto as cr
 
 

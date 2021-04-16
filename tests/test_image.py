@@ -1,5 +1,5 @@
 import pytest
-import conftest as fix
+from . import conftest as fix
 import connaisseur.image as img
 import connaisseur.exceptions as exc
 
