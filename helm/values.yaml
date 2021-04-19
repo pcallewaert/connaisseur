@@ -88,7 +88,8 @@ targetNamespaces: ['*']
 #
 # Below is an example config
 
-#alerting:
+alerting:
+  cluster: "test"
 #  admit_request:
 #    templates:
 #      # <template> needs to be chosen such that <template>.json matches one of the file names
