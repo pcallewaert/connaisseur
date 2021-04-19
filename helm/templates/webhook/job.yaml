@@ -37,6 +37,27 @@ spec:
           envFrom:
           - configMapRef:
               name: {{ .Chart.Name }}-env
+          resources:
+            requests:
+              memory: "64Mi"
+              cpu: "100m"
+            limits:
+              memory: "128Mi"
+              cpu: "200m"
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
+            privileged: false
+            readOnlyRootFilesystem: true
+            runAsGroup: 2000
+            runAsNonRoot: true
+            runAsUser: 1000
+            {{- if gt (.Capabilities.KubeVersion.Minor | int) 18 }}
+            seccompProfile:
+              type: RuntimeDefault
+            {{- end }}
       volumes:
         - name: webhook-data
           configMap:
@@ -80,6 +101,27 @@ spec:
           envFrom:
           - configMapRef:
               name: {{ .Chart.Name }}-env
+          resources:
+            requests:
+              memory: "64Mi"
+              cpu: "100m"
+            limits:
+              memory: "128Mi"
+              cpu: "200m"
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
+            privileged: false
+            readOnlyRootFilesystem: true
+            runAsGroup: 2000
+            runAsNonRoot: true
+            runAsUser: 1000
+            {{- if gt (.Capabilities.KubeVersion.Minor | int) 18 }}
+            seccompProfile:
+              type: RuntimeDefault
+            {{- end }}
       restartPolicy: OnFailure
 ---
 
@@ -122,6 +164,27 @@ spec:
           envFrom:
           - configMapRef:
               name: {{ .Chart.Name }}-env
+          resources:
+            requests:
+              memory: "64Mi"
+              cpu: "100m"
+            limits:
+              memory: "128Mi"
+              cpu: "200m"
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
+            privileged: false
+            readOnlyRootFilesystem: true
+            runAsGroup: 2000
+            runAsNonRoot: true
+            runAsUser: 1000
+            {{- if gt (.Capabilities.KubeVersion.Minor | int) 18 }}
+            seccompProfile:
+              type: RuntimeDefault
+            {{- end }}
       volumes:
         - name: webhook-data
           configMap:
