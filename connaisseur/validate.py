@@ -11,6 +11,7 @@ from connaisseur.exceptions import (
     AmbiguousDigestError,
 )
 from connaisseur.policy import Rule
+import connaisseur.debug_timer as dbgt
 
 
 def get_trusted_digest(notary_config: Notary, image: Image, policy_rule: Rule):
@@ -36,9 +37,11 @@ def get_trusted_digest(notary_config: Notary, image: Image, policy_rule: Rule):
 
         # get list of targets fields, containing tag to signed digest mapping from
         # `targets.json` and all potential delegation roles
+        dbgt.start(f"{str(image)}_process_chain")
         signed_image_targets = __process_chain_of_trust(
             notary_config, image, req_delegations, pub_key
         )
+        dbgt.stop(f"{str(image)}_process_chain")
 
         # search for digests or tag, depending on given image
         search_image_targets = (
@@ -96,8 +99,10 @@ def __process_chain_of_trust(
     tuf_roles = ["root", "snapshot", "timestamp", "targets"]
 
     # load all trust data
+    dbgt.start(f"{str(image)}_getting_trust_data")
     for role in tuf_roles:
         trust_data[role] = notary_config.get_trust_data(image, TUFRole(role))
+    dbgt.stop(f"{str(image)}_getting_trust_data")
 
     # validate signature and expiry data of and load root file
     # this does NOT conclude the validation of the root file. To prevent rollback/freeze

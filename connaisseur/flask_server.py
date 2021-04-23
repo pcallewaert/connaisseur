@@ -17,6 +17,7 @@ from connaisseur.admission_request import AdmissionRequest
 from connaisseur.policy import ImagePolicy
 from connaisseur.image import Image
 from connaisseur.validate import get_trusted_digest
+import connaisseur.debug_timer as dbgt
 
 
 DETECTION_MODE = os.environ.get("DETECTION_MODE", "0") == "1"
@@ -51,6 +52,7 @@ def mutate():
     Sends its response back, which either denies or allows the request.
     """
     try:
+        dbgt.start("mutate_runtime")
         logging.debug(request.json)
         admission_request = AdmissionRequest(request.json)
         response = __admit(admission_request)
@@ -66,6 +68,8 @@ def mutate():
         if call_alerting_on_request(admission_request, admitted=False):
             send_alerts(admission_request, admitted=False, reason=msg)
         logging.error(err_log)
+        dbgt.stop("mutate_runtime")
+        logging.debug(dbgt.times)
         return jsonify(
             get_admission_review(
                 admission_request.uid,
@@ -76,6 +80,8 @@ def mutate():
         )
     if call_alerting_on_request(admission_request, admitted=True):
         send_alerts(admission_request, admitted=True)
+    dbgt.stop("mutate_runtime")
+    logging.debug(dbgt.times)
     return jsonify(response)
 
 
@@ -152,6 +158,7 @@ def __admit(admission_request: AdmissionRequest):
 
     for index, c_image in enumerate(admission_request.k8s_object.container_images):
         try:
+            dbgt.start(f"{c_image}_runtime")
             logging_context = dict(admission_request.context, image=c_image)
 
             # child resources have mutated image names, as their parents got mutated
@@ -184,7 +191,9 @@ def __admit(admission_request: AdmissionRequest):
                 )
             )
 
+            dbgt.start(f"{c_image}_get_trusted_digest")
             trusted_digest = get_trusted_digest(notary, image, policy_rule)
+            dbgt.stop(f"{c_image}_get_trusted_digest")
             image.set_digest(trusted_digest)
             patches += [
                 __create_json_patch(
@@ -196,5 +205,7 @@ def __admit(admission_request: AdmissionRequest):
             logging.info(__create_logging_msg(msg, **logging_context))
         except BaseConnaisseurException as err:
             err.update_context(**logging_context)
+            dbgt.stop(f"{c_image}_runtime")
             raise err
+        dbgt.stop(f"{c_image}_runtime")
     return get_admission_review(admission_request.uid, True, patch=patches)
