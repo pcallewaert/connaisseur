@@ -1,4 +1,5 @@
 import base64
+from multiprocessing import Pool
 from connaisseur.image import Image
 from connaisseur.config import Notary
 from connaisseur.key_store import KeyStore
@@ -11,6 +12,7 @@ from connaisseur.exceptions import (
     AmbiguousDigestError,
 )
 from connaisseur.policy import Rule
+from connaisseur.trust_data import TrustData
 import connaisseur.debug_timer as dbgt
 
 
@@ -93,15 +95,25 @@ def __process_chain_of_trust(
     Raises `NotFoundExceptions` should no required delegetions be present in
     the trust data, or no image targets be found.
     """
-    trust_data = {}
     key_store = KeyStore(pub_root_key)
-
     tuf_roles = ["root", "snapshot", "timestamp", "targets"]
 
     # load all trust data
     dbgt.start(f"{str(image)}_getting_trust_data")
-    for role in tuf_roles:
-        trust_data[role] = notary_config.get_trust_data(image, TUFRole(role))
+    with Pool() as pool:
+        try:
+            result = pool.starmap_async(
+                notary_config.get_trust_data,
+                [(image, TUFRole(role)) for role in tuf_roles],
+            )
+            trust_data_list = result.get(timeout=30)
+        except Exception as err:
+            msg = "Error retrieving trust data form notary."
+            raise NotFoundException(message=msg, notary=str(notary_config)) from err
+    trust_data = {
+        tuf_roles[i]: TrustData(trust_data_list[i], tuf_roles[i])
+        for i in range(len(tuf_roles))
+    }
     dbgt.stop(f"{str(image)}_getting_trust_data")
 
     # validate signature and expiry data of and load root file
@@ -226,15 +238,29 @@ def __search_image_targets_for_tag(trust_data: dict, image: Image):
 def __update_with_delegation_trust_data(
     trust_data, delegations, key_store, notary_config, image
 ):
-    for delegation in delegations:
-        delegation_trust_data = notary_config.get_delegation_trust_data(
-            image, TUFRole(delegation)
-        )
-        # when delegations are added to the repository, but weren't yet used for signing, the
-        # delegation files don't exist yet and are `None`. in this case validation must be skipped
-        if delegation_trust_data is not None:
-            delegation_trust_data.validate(key_store)
-        trust_data[delegation] = delegation_trust_data
+    with Pool() as pool:
+        try:
+            result = pool.starmap_async(
+                notary_config.get_delegation_trust_data,
+                [(image, TUFRole(delegation)) for delegation in delegations],
+            )
+            delegation_trust_data_list = result.get(timeout=30)
+        except Exception as err:
+            msg = "Error retrieving delegation trust data form notary."
+            raise NotFoundException(message=msg, notary=str(notary_config)) from err
+
+    # when delegations are added to the repository, but weren't yet used for signing, the
+    # delegation files don't exist yet and are `None`. in this case validation must be
+    # skipped
+    delegation_trust_data = {
+        delegations[i]: TrustData(delegation_trust_data_list[i], delegations[i])
+        for i in range(len(delegations))
+        if delegation_trust_data_list[i]
+    }
+
+    for delegation in delegation_trust_data:
+        delegation.validate(key_store)
+    trust_data.update(delegation_trust_data)
 
 
 def __validate_all_required_delegations_present(
