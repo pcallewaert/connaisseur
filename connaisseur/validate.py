@@ -83,7 +83,7 @@ def get_trusted_digest(notary_config: Notary, image: Image, policy_rule: Rule):
 
 def __process_chain_of_trust(
     notary_config: Notary, image: Image, req_delegations: list, pub_root_key: str
-):  # pylint: disable=too-many-branches
+):  # pylint: disable=too-many-branches,too-many-locals
     """
     Processes the whole chain of trust, provided by the notary server (`notary_config`)
     for any given `image`. The 'root', 'snapshot', 'timestamp', 'targets' and
@@ -259,7 +259,7 @@ def __update_with_delegation_trust_data(
     }
 
     for delegation in delegation_trust_data:
-        delegation.validate(key_store)
+        delegation_trust_data[delegation].validate(key_store)
     trust_data.update(delegation_trust_data)
 
 
