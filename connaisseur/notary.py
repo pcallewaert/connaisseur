@@ -31,7 +31,7 @@ class Notary:
         """
         Creates a Notary object from a dictionary.
 
-        Raises `InvalidFormatException` should teh mandatory fields be missing.
+        Raises `InvalidFormatException` should the mandatory fields be missing.
         """
 
         if not (name and host and pub_root_keys):
@@ -227,7 +227,7 @@ class Notary:
         if not url.startswith("https"):
             msg = (
                 "authentication through insecure channel "
-                "for notary {notary_name} is prohibitted."
+                "for notary {notary_name} is prohibited."
             )
             raise InvalidFormatException(
                 message=msg, notary_name=self.name, auth_url=url

@@ -13,6 +13,9 @@ from connaisseur.image import Image
 from connaisseur.admission_request import AdmissionRequest
 
 
+__SCHEMA_PATH = "connaisseur/res/alertconfig_schema.json"
+
+
 class Alert:
     """
     Class to store image information about an alert as attributes and a sending functionality as method.
@@ -40,7 +43,7 @@ class Alert:
             "timestamp": datetime.now(),
             "request_id": admission_request.uid or "No given UID",
             "images": (
-                str(admission_request.k8s_object.container_images) or "No given images"
+                str(admission_request.wl_object.container_images) or "No given images"
             ),
         }
         self.receiver_url = receiver_config["receiver_url"]
@@ -161,7 +164,7 @@ def call_alerting_on_request(admission_request, *, admitted):
             normalized_hook_image.tag,
         )
         images = []
-        for image in admission_request.k8s_object.container_images:
+        for image in admission_request.wl_object.container_images:
             normalized_image = Image(image)
             images.append(
                 "{}/{}/{}:{}".format(
@@ -183,5 +186,5 @@ def no_alerting_configured_for_event(admitted):
 
 
 def get_alert_config_validation_schema():
-    with open("connaisseur/res/alertconfig_schema.json") as schemafile:
+    with open(__SCHEMA_PATH) as schemafile:
         return json.load(schemafile)

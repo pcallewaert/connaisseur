@@ -1,6 +1,6 @@
 import json
 from jsonschema import validate, ValidationError
-from connaisseur.k8s_object import K8sObject
+from connaisseur.workload_object import WorkloadObject
 from connaisseur.exceptions import InvalidFormatException
 
 
@@ -16,7 +16,7 @@ class AdmissionRequest:
         self.namespace = request["namespace"]
         self.operation = request["operation"]
         self.user = request["userInfo"]["username"]
-        self.k8s_object = K8sObject(request["object"], self.namespace)
+        self.wl_object = WorkloadObject(request["object"], self.namespace)
 
     def __validate(self, request: dict):
         with open(self.SCHEMA_PATH, "r") as schemafile:
@@ -39,6 +39,6 @@ class AdmissionRequest:
             "user": self.user,
             "operation": self.operation,
             "kind": self.kind,
-            "name": self.k8s_object.name,
+            "name": self.wl_object.name,
             "namespace": self.namespace,
         }

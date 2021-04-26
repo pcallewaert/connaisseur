@@ -89,10 +89,6 @@ class UnknownTypeException(BaseConnaisseurException):
     pass
 
 
-class UnknownVersionError(UnknownTypeException):
-    pass
-
-
 class UnknownAPIVersionError(UnknownTypeException):
     pass
 

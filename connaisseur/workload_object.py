@@ -1,4 +1,4 @@
-import connaisseur.kube_api as kapi
+import connaisseur.kube_api as k_api
 from connaisseur.exceptions import UnknownAPIVersionError, ParentNotFoundError
 
 
@@ -14,17 +14,17 @@ SUPPORTED_API_VERSIONS = {
 }
 
 
-class K8sObject:
+class WorkloadObject:
     container_path = "/spec/template/spec/containers/{}/image"
 
     def __new__(
         cls, request_object: dict, namespace: str
     ):  # pylint: disable=unused-argument
         if request_object["kind"] == "Pod":
-            return super(K8sObject, cls).__new__(Pod)
+            return super(WorkloadObject, cls).__new__(Pod)
         elif request_object["kind"] == "CronJob":
-            return super(K8sObject, cls).__new__(CronJob)
-        return super(K8sObject, cls).__new__(K8sObject)
+            return super(WorkloadObject, cls).__new__(CronJob)
+        return super(WorkloadObject, cls).__new__(WorkloadObject)
 
     def __init__(self, request_object: dict, namespace: str):
         self.kind = request_object["kind"]
@@ -38,14 +38,14 @@ class K8sObject:
 
         if self.api_version not in SUPPORTED_API_VERSIONS[self.kind]:
             msg = (
-                "{k8_obj_version} is not in the supported API version list "
-                "for {k8_obj_kind} {k8_obj_name}."
+                "{wl_obj_version} is not in the supported API version list "
+                "for {wl_obj_kind} {wl_obj_name}."
             )
             raise UnknownAPIVersionError(
                 message=msg,
-                k8_obj_version=self.api_version,
-                k8_obj_kind=self.kind,
-                k8_obj_name=self.name,
+                wl_obj_version=self.api_version,
+                wl_obj_kind=self.kind,
+                wl_obj_name=self.name,
             )
 
     @property
@@ -57,7 +57,7 @@ class K8sObject:
             name = owner["name"]
             uid = owner["uid"]
 
-            parent = kapi.request_kube_api(
+            parent = k_api.request_kube_api(
                 f"apis/{api_version}/namespaces/{self.namespace}/{kind}/{name}"
             )
 
@@ -70,7 +70,7 @@ class K8sObject:
                     message=msg, parent_kind=kind, parent_name=name, parent_uid=uid
                 )
 
-            parent_images += K8sObject(parent, self.namespace).container_images
+            parent_images += WorkloadObject(parent, self.namespace).container_images
         return parent_images
 
     @property
@@ -82,7 +82,7 @@ class K8sObject:
         ]
 
 
-class Pod(K8sObject):
+class Pod(WorkloadObject):
     container_path = "/spec/containers/{}/image"
 
     @property
@@ -95,7 +95,7 @@ class Pod(K8sObject):
         ]
 
 
-class CronJob(K8sObject):
+class CronJob(WorkloadObject):
     container_path = "/spec/jobTemplate/spec/template/spec/containers/{}/image"
 
     @property

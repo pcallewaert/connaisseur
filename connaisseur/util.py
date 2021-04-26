@@ -32,7 +32,7 @@ def get_admission_review(
     Parameters
     ----------
     uid : str
-        The uid of the request, that was send to the Admission Controller.
+        The uid of the request that was sent to the Admission Controller.
     allowed : bool
         The decision, whether the request will be accepted or denied.
     patch : list (optional)

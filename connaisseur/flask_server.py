@@ -5,12 +5,11 @@ from flask import Flask, request, jsonify
 from requests.exceptions import HTTPError
 from connaisseur.exceptions import (
     BaseConnaisseurException,
-    UnknownVersionError,
     AlertSendingError,
     ConfigurationError,
 )
 from connaisseur.util import get_admission_review
-import connaisseur.kube_api as kapi
+import connaisseur.kube_api as k_api
 from connaisseur.alert import call_alerting_on_request, send_alerts
 from connaisseur.config import Config
 from connaisseur.admission_request import AdmissionRequest
@@ -58,8 +57,6 @@ def mutate():
         if isinstance(err, BaseConnaisseurException):
             err_log = str(err)
             msg = err.user_msg  # pylint: disable=no-member
-        elif isinstance(err, UnknownVersionError):
-            msg, err_log = str(err), str(err)
         else:
             err_log = str(traceback.format_exc())
             msg = "unknown error. please check the logs."
@@ -116,7 +113,7 @@ def readyz():
     sentinel_path = f"api/v1/namespaces/{sentinel_ns}/pods/{sentinel}"
 
     try:
-        sentinel_response = kapi.request_kube_api(sentinel_path)
+        sentinel_response = k_api.request_kube_api(sentinel_path)
     except HTTPError:
         sentinel_response = {}
 
@@ -130,7 +127,7 @@ def readyz():
     )
 
     try:
-        webhook_response = kapi.request_kube_api(webhook_path)
+        webhook_response = k_api.request_kube_api(webhook_path)
     except HTTPError:
         webhook_response = None
 
@@ -147,10 +144,10 @@ def __create_json_patch(path: str, index: int, image: Image):
 
 def __admit(admission_request: AdmissionRequest):
     policy = ImagePolicy()
-    parent_images = admission_request.k8s_object.parent_images
+    parent_images = admission_request.wl_object.parent_images
     patches = []
 
-    for index, c_image in enumerate(admission_request.k8s_object.container_images):
+    for index, c_image in enumerate(admission_request.wl_object.container_images):
         try:
             logging_context = dict(admission_request.context, image=c_image)
 
@@ -188,7 +185,7 @@ def __admit(admission_request: AdmissionRequest):
             image.set_digest(trusted_digest)
             patches += [
                 __create_json_patch(
-                    admission_request.k8s_object.container_path, index, image
+                    admission_request.wl_object.container_path, index, image
                 )
             ]
 

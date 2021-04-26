@@ -2,7 +2,7 @@ import os
 import fnmatch
 import json
 from jsonschema import validate, ValidationError
-import connaisseur.kube_api as kapi
+import connaisseur.kube_api as k_api
 from connaisseur.image import Image
 from connaisseur.exceptions import (
     InvalidPolicyFormatError,
@@ -50,7 +50,7 @@ class ImagePolicy:
         image_policy = os.environ.get("CONNAISSEUR_IMAGE_POLICY")
 
         path = f"apis/connaisseur.policy/v1/imagepolicies/{image_policy}"
-        response = kapi.request_kube_api(path)
+        response = k_api.request_kube_api(path)
 
         return response["spec"]
 
