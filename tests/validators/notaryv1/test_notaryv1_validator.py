@@ -275,3 +275,108 @@ def test_process_chain_of_trust(
             )
             == targets
         )
+
+
+@pytest.mark.parametrize(
+    "image, digest",
+    [
+        (
+            (
+                "image@sha256:1388abc7a12532836c3a81"
+                "bdb0087409b15208f5aeba7a87aedcfd56d637c145"
+            ),
+            "1388abc7a12532836c3a81bdb0087409b15208f5aeba7a87aedcfd56d637c145",
+        ),
+        (
+            (
+                "image@sha256:b8a38522876a9e2550d582"
+                "ce51a1d87ebdc6c570e5e585d08560bfd646f7f804"
+            ),
+            "b8a38522876a9e2550d582ce51a1d87ebdc6c570e5e585d08560bfd646f7f804",
+        ),
+        (
+            (
+                "image@sha256:b8a38522876a9e2550d582"
+                "ce51a1d87ebdc6c570e5e585d08560bfd646f7f805"
+            ),
+            None,
+        ),
+    ],
+)
+def test_search_image_targets_for_digest(sample_nv1, image: str, digest: str):
+    data = fix.get_td("sample_releases")["signed"]["targets"]
+    assert (
+        sample_nv1._NotaryV1Validator__search_image_targets_for_digest(
+            data, Image(image)
+        )
+        == digest
+    )
+
+
+@pytest.mark.parametrize(
+    "image, digest",
+    [
+        (
+            "image:v1",
+            "1388abc7a12532836c3a81bdb0087409b15208f5aeba7a87aedcfd56d637c145",
+        ),
+        (
+            "image:v2",
+            "b8a38522876a9e2550d582ce51a1d87ebdc6c570e5e585d08560bfd646f7f804",
+        ),
+        ("image:v3", None),
+    ],
+)
+def test_search_image_targets_for_tag(sample_nv1, image: str, digest: str):
+    data = fix.get_td("sample_releases")["signed"]["targets"]
+    assert (
+        sample_nv1._NotaryV1Validator__search_image_targets_for_tag(data, Image(image))
+        == digest
+    )
+
+
+@pytest.mark.parametrize(
+    "delegations",
+    [
+        ([]),
+        (["targets/phbelitz"]),
+        (["targets/phbelitz", "targets/chamsen"]),
+        (["targets/daugustin"]),
+    ],
+)
+def test_update_with_delegation_trust_data(
+    m_request,
+    m_trust_data,
+    m_expiry,
+    alice_key_store,
+    sample_nv1,
+    delegations,
+):
+    assert (
+        sample_nv1._NotaryV1Validator__update_with_delegation_trust_data(
+            {}, delegations, alice_key_store, Image("alice-image")
+        )
+        is None
+    )
+
+
+@pytest.mark.parametrize(
+    "req_del, pre_del, exception",
+    [
+        (["phb"], ["phb", "cha"], fix.no_exc()),
+        (["phb", "cha"], ["phb", "cha"], fix.no_exc()),
+        (["phb"], ["cha"], pytest.raises(exc.NotFoundException, match=r".*phb.*")),
+        ([], [], fix.no_exc()),
+        (["phb"], [], pytest.raises(exc.NotFoundException)),
+    ],
+)
+def test_validate_all_required_delegations_present(
+    sample_nv1, req_del, pre_del, exception
+):
+    with exception:
+        assert (
+            sample_nv1._NotaryV1Validator__validate_all_required_delegations_present(
+                req_del, pre_del
+            )
+            is None
+        )
