@@ -1,6 +1,6 @@
 import pytest
 import conftest as fix
-import connaisseur.kube_api as kapi
+import connaisseur.kube_api as k_api
 
 
 @pytest.mark.parametrize(
@@ -19,4 +19,4 @@ import connaisseur.kube_api as kapi
 def test_request_kube_api(monkeypatch, m_request, url: str, response: dict):
     monkeypatch.setenv("KUBERNETES_SERVICE_HOST", "127.0.0.1")
     monkeypatch.setenv("KUBERNETES_SERVICE_PORT", "1234")
-    assert kapi.request_kube_api(url) == response
+    assert k_api.request_kube_api(url) == response

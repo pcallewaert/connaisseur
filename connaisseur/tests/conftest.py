@@ -9,7 +9,14 @@ import connaisseur.key_store as ks
 import connaisseur.notary as no
 import connaisseur.config as co
 import connaisseur.admission_request as admreq
+import connaisseur.alert as alert
 from contextlib import contextmanager
+
+
+"""
+This file is used for sharing fixtures across all other test files.
+https://docs.pytest.org/en/stable/fixture.html#scope-sharing-fixtures-across-classes-modules-packages-or-session
+"""
 
 
 @contextmanager
@@ -347,3 +354,23 @@ def adm_req_samples(m_ad_schema_path):
             "auto_approval",
         )
     ]
+
+
+@pytest.fixture()
+def mock_safe_path_func_load_config(mocker):
+    side_effect = lambda callback, base_dir, path, *args, **kwargs: callback(
+        path, *args, **kwargs
+    )
+    mocker.patch("connaisseur.alert.safe_path_func", side_effect)
+
+
+@pytest.fixture
+def m_alerting(monkeypatch, mock_safe_path_func_load_config):
+    monkeypatch.setenv("DETECTION_MODE", "0")
+    monkeypatch.setenv(
+        "HELM_HOOK_IMAGE", "securesystemsengineering/connaisseur:helm-hook"
+    )
+    monkeypatch.setenv("ALERT_CONFIG_DIR", "tests/data/alerting")
+    monkeypatch.setenv("POD_NAME", "connaisseur-pod-123")
+    monkeypatch.setenv("CLUSTER_NAME", "minikube")
+    alert.__SCHEMA_PATH = "res/alertconfig_schema.json"

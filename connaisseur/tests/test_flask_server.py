@@ -168,3 +168,39 @@ def test_admit(
 ):
     with exception:
         assert pytest.fs.__admit(AdmissionRequest(adm_req_samples[index])) == out
+
+
+@pytest.mark.parametrize(
+    "function, err",
+    [
+        (
+            {
+                "target": "connaisseur.flask_server.send_alerts",
+                "side_effect": exc.AlertSendingError(""),
+            },
+            "Alert could not be sent. Check the logs for more details!",
+        ),
+        (
+            {
+                "target": "connaisseur.flask_server.call_alerting_on_request",
+                "side_effect": exc.ConfigurationError(""),
+            },
+            "Alerting configuration is not valid. Check the logs for more details!",
+        ),
+    ],
+)
+def test_error_handler(
+    mocker,
+    m_ad_schema_path,
+    m_alerting,
+    function,
+    err,
+):
+
+    mocker.patch("connaisseur.flask_server.__admit", return_value=True)
+    mock_function = mocker.patch(**function)
+    client = pytest.fs.APP.test_client()
+    mock_request_data = fix.get_admreq("deployments")
+    response = client.post("/mutate", json=mock_request_data)
+    assert response.status_code == 500
+    assert response.get_data().decode() == err
