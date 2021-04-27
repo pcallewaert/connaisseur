@@ -1,9 +1,9 @@
 import pytest
 import ecdsa
-import conftest as fix
-import connaisseur.key_store as ks
+from ... import conftest as fix
+import connaisseur.validators.notrayv1.key_store as ks
+from connaisseur.validators.notrayv1.trust_data import TrustData
 import connaisseur.exceptions as exc
-from connaisseur.trust_data import TrustData
 from connaisseur.crypto import load_key
 
 sample_key = (

@@ -1,7 +1,7 @@
 import yaml
 import pytest
-import conftest as fix
-import connaisseur.notary as notary
+from ... import conftest as fix
+import connaisseur.validators.notrayv1.notary as notary
 import connaisseur.exceptions as exc
 import connaisseur.util
 from connaisseur.image import Image
@@ -16,7 +16,8 @@ def mock_safe_path_func(monkeypatch):
 
 
 @pytest.fixture
-def sample_notaries():
+def sample_notaries(mock_safe_path_func):
+    notary.Notary.SELFSIGNED_PATH = "tests/data/notary/{}.cert"
     li = []
     for file_name in ("notary1", "notary2", "err1", "err2", "err3", "unhealthy_notary"):
         with open(f"tests/data/notary/{file_name}.yaml") as file:
@@ -106,27 +107,10 @@ def test_get_key(sample_notaries, index, key_name, key, exception):
 
 
 @pytest.mark.parametrize(
-    "auth_file, creds, exception",
-    [
-        ("sample_auth", ("hans", "wurst"), fix.no_exc()),
-        ("sample_authhh", None, fix.no_exc()),
-        ("sample_auth_err", None, pytest.raises(exc.InvalidFormatException)),
-    ],
-)
-def test_auth(mock_safe_path_func, sample_notaries, auth_file, creds, exception):
-    no = notary.Notary(**sample_notaries[0])
-    no.name = auth_file
-    no.AUTH_PATH = "tests/data/notary/{}.yaml"
-    with exception:
-        assert no.auth == creds
-
-
-@pytest.mark.parametrize(
     "index, out", [(1, "tests/data/notary/harbor.cert"), (0, None)]
 )
-def test_selfsigned_cert(mock_safe_path_func, sample_notaries, index, out):
+def test_create_selfsigned_cert(sample_notaries, index, out):
     no = notary.Notary(**sample_notaries[index])
-    no.SELFSIGNED_PATH = "tests/data/notary/{}.cert"
     assert no.selfsigned_cert == out
 
 

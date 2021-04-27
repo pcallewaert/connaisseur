@@ -1,6 +1,6 @@
 import pytest
-import conftest as fix
-import connaisseur.tuf_role as tuf
+from ... import conftest as fix
+import connaisseur.validators.notrayv1.tuf_role as tuf
 import connaisseur.exceptions as exc
 
 

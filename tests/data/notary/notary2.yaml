@@ -21,12 +21,13 @@ selfsigned_cert: |
   DSo1s+3uJ4evVKDRf3vLwKLTtiYfd20=
   -----END CERTIFICATE-----
 pub_root_keys:
-- name: library
-  key: |
-    -----BEGIN PUBLIC KEY-----
-    MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEH+G0yM9CQ8KjN2cF8iHpiTA9Q69q
-    3brrzLkY1kjmRNOs0c2sx2nm8j2hFZRbyaVsd52Mkw0k5WrX+9vBfbjtdQ==
-    -----END PUBLIC KEY-----
+  - name: library
+    key: |
+      -----BEGIN PUBLIC KEY-----
+      MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEH+G0yM9CQ8KjN2cF8iHpiTA9Q69q
+      3brrzLkY1kjmRNOs0c2sx2nm8j2hFZRbyaVsd52Mkw0k5WrX+9vBfbjtdQ==
+      -----END PUBLIC KEY-----
 auth:
-  secretName: harbor-creds
+  user: hans
+  pass: wurst
 is_acr: true

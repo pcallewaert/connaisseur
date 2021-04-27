@@ -10,6 +10,7 @@ import connaisseur.alert as alert
 import connaisseur.validators.notrayv1.trust_data as td
 import connaisseur.validators.notrayv1.key_store as ks
 import connaisseur.validators.notrayv1.notary as no
+import connaisseur.util as util
 from contextlib import contextmanager
 
 
@@ -346,6 +347,14 @@ def mock_safe_path_func_load_config(mocker):
         path, *args, **kwargs
     )
     mocker.patch("connaisseur.alert.safe_path_func", side_effect)
+
+
+@pytest.fixture
+def m_safe_path_func(monkeypatch):
+    def m_safe_path_func(callback: callable, base_dir: str, path: str, *args, **kwargs):
+        return callback(path, *args, **kwargs)
+
+    monkeypatch.setattr(util, "safe_path_func", m_safe_path_func)
 
 
 @pytest.fixture

@@ -2,10 +2,10 @@ import pytest
 import json
 import pytz
 import datetime as dt
-import conftest as fix
-import connaisseur.trust_data as td
+from ... import conftest as fix
+import connaisseur.validators.notrayv1.trust_data as td
+from connaisseur.validators.notrayv1.key_store import KeyStore
 import connaisseur.exceptions as exc
-from connaisseur.key_store import KeyStore
 from connaisseur.crypto import load_key
 
 pub_root_keys = {

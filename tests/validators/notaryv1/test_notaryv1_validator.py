@@ -8,14 +8,14 @@ import connaisseur.exceptions as exc
 @pytest.fixture
 def sample_nv1(sample_notary):
     val = nv1.NotaryV1Validator(
-        **{"name": "dockerhub", "host": "none", "root_keys": ["none"]}
+        **{"name": "dockerhub", "host": "none", "pub_root_keys": ["none"]}
     )
     val.notary = sample_notary
     return val
 
 
 @pytest.mark.parametrize(
-    "val_config", [{"name": "nv1", "host": "me", "root_keys": ["not_empty"]}]
+    "val_config", [{"name": "nv1", "host": "me", "pub_root_keys": ["not_empty"]}]
 )
 def test_init(m_notary, val_config):
     val = nv1.NotaryV1Validator(**val_config)
@@ -108,7 +108,7 @@ def test_validate(
 )
 def test_healthy(m_request, url, acr, health):
     val = nv1.NotaryV1Validator(
-        **{"name": "sample", "host": url, "root_keys": ["not_empty"], "is_acr": acr}
+        **{"name": "sample", "host": url, "pub_root_keys": ["not_empty"], "is_acr": acr}
     )
     assert val.healthy is health
 

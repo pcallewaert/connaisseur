@@ -12,7 +12,7 @@ import connaisseur.exceptions as exc
                 "type": "notaryv1",
                 "name": "notary1",
                 "host": "me",
-                "root_keys": [{"name": "i'm", "key": "not_empty"}],
+                "pub_root_keys": [{"name": "i'm", "key": "not_empty"}],
             },
             val.NotaryV1Validator,
             fix.no_exc(),
