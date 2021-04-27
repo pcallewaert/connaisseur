@@ -51,7 +51,9 @@ class Notary:
         self.is_acr = kwargs.get("is_acr", False)
         self.is_cosign = kwargs.get("is_cosign", False)
         self.auth = kwargs.get("auth", {})
-        self.selfsigned_cert = self.__create_selfsigned_cert(kwargs.get("cert"))
+        self.selfsigned_cert = self.__create_selfsigned_cert(
+            kwargs.get("selfsigned_cert")
+        )
 
     def __create_selfsigned_cert(self, cert: str):
         if not cert:

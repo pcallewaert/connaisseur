@@ -184,7 +184,7 @@ def __admit(admission_request: AdmissionRequest):
             trusted_digest = validator.validate(image, **policy_rule.arguments)
             __update_json_patch(
                 patches,
-                admission_request.k8s_object.container_path,
+                admission_request.wl_object.container_path,
                 index,
                 image,
                 trusted_digest,
