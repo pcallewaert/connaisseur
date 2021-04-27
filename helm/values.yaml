@@ -32,7 +32,7 @@ validators:
 - name: default
   type: notaryv1
   host: notary.docker.io
-  root_keys:
+  pub_root_keys:
   # this is the public key for all official dockerhub images (e.g. redis)
   - name: default
     key: |
@@ -46,6 +46,15 @@ validators:
       -----BEGIN PUBLIC KEY-----
       MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEsx28WV7BsQfnHF1kZmpdCTTLJaWe
       d0CA+JOi8H4REuBaWSZ5zPDe468WuOJ6f71E7WFg3CVEVYHuoZt2UYbN/Q==
+      -----END PUBLIC KEY-----
+- name: cosign-example
+  type: cosign
+  keys:
+  - name: default
+    key: |
+      -----BEGIN PUBLIC KEY-----
+      MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEvtc/qpHtx7iUUj+rRHR99a8mnGni
+      qiGkmUb9YpWWTS4YwlvwdmMDiGzcsHiDOYz6f88u2hCRF5GUCvyiZAKrsA==
       -----END PUBLIC KEY-----
 # additional sample configuration
 # - name: sample-notary  # name for referencing in the image policy
@@ -80,6 +89,8 @@ policy:
   validator: allow
 - pattern: "docker.io/securesystemsengineering/connaisseur:*"
   validator: allow
+- pattern: "docker.io/securesystemsengineering/testimage:co-*"
+  validator: cosign-example
 
 
 
