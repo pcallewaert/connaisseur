@@ -154,7 +154,7 @@ class Notary:
 
         response.raise_for_status()
 
-        return TrustData(response.json(), str(role))
+        return response.json()
 
     def get_delegation_trust_data(self, image: Image, role: TUFRole, token: str = None):
         try:
