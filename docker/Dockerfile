@@ -6,7 +6,7 @@ FROM base as builder
 RUN mkdir /install
 WORKDIR /install
 COPY requirements.txt /requirements.txt
-RUN pip install --no-cache-dir --prefix=/install -r /requirements.txt
+RUN YARL_NO_EXTENSIONS=1 MULTIDICT_NO_EXTENSIONS=1 pip install --no-cache-dir --prefix=/install -r /requirements.txt
 
 # build cosign
 FROM golang:buster as go_builder

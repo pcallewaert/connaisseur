@@ -1,9 +1,9 @@
 # configure connaisseur deployment
 deployment:
-  replicasCount: 3
+  replicasCount: 1
   image: securesystemsengineering/connaisseur:v2.0.0
   helmHookImage: securesystemsengineering/connaisseur:helm-hook-v1.0
-  imagePullPolicy: Always
+  imagePullPolicy: Never
   resources: {}
   # limits:
   #   cpu: 100m
@@ -79,21 +79,21 @@ validators:
 # verified. more detail in the git repo README.md
 policy:
 - pattern: "*:*"
-  validator: dockerhub
+  validator: docker_essentials
 - pattern: "docker.io/library/*:*"
-  validator: dockerhub
+  validator: docker_essentials
   with:
     key: docker_official
 - pattern: "k8s.gcr.io/*:*"
   validator: allow
 - pattern: "docker.io/securesystemsengineering/connaisseur:*"
-  validator: dockerhub
+  validator: docker_essentials
   with:
-    key: sse
+    key: sse_official
 - pattern: "docker.io/securesystemsengineering/connaisseur:helm-hook-*"
   validator: allow
 - pattern: "docker.io/securesystemsengineering/testimage:co-*"
-  validator: cosign
+  validator: cosign_demo
   with:
     key: sse
 
@@ -108,7 +108,7 @@ detection_mode: false
 # If the list contains '*' - all namespaces will be monitored.
 targetNamespaces: ['*']
 
-# debug: true
+debug: true
 
 # alerting is implemented in form of simple POST requests with json payload
 # you can use and/or adapt the predefined Slack/OpsGenie/Keybase templates and the examples below
