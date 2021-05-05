@@ -2,6 +2,8 @@ import pytest
 from . import conftest as fix
 import connaisseur.workload_object as wl
 import connaisseur.exceptions as exc
+from connaisseur.image import Image
+from connaisseur.container import Container
 
 
 static_k8s = [
@@ -29,6 +31,13 @@ static_k8s = [
         "namespace": "default",
         "name": "yooob",
     },
+    {},
+    {
+        "kind": "Deployment",
+        "apiVersion": "apps/v1",
+        "namespace": "default",
+        "name": "test",
+    },
 ]
 
 
@@ -36,7 +45,14 @@ static_k8s = [
 def adm_req_sample_objects():
     return [
         fix.get_admreq(t)["request"]["object"]
-        for t in ("deployments", "pods", "replicasets", "cronjob", "wrong_version")
+        for t in (
+            "deployments",
+            "pods",
+            "replicasets",
+            "cronjob",
+            "wrong_version",
+            "deployments_multi_image",
+        )
     ]
 
 
@@ -47,6 +63,7 @@ def adm_req_sample_objects():
         (1, wl.Pod),
         (2, wl.WorkloadObject),
         (3, wl.CronJob),
+        (5, wl.WorkloadObject),
     ],
 )
 def test_k8s_object_new(adm_req_sample_objects, index, wl_class):
@@ -62,6 +79,7 @@ def test_k8s_object_new(adm_req_sample_objects, index, wl_class):
         (2, fix.no_exc()),
         (3, fix.no_exc()),
         (4, pytest.raises(exc.UnknownAPIVersionError)),
+        (5, fix.no_exc()),
     ],
 )
 def test_k8s_object_init(adm_req_sample_objects, index, exception):
@@ -80,9 +98,14 @@ def test_k8s_object_init(adm_req_sample_objects, index, exception):
         (
             1,
             [
-                (
-                    "securesystemsengineering/charlie-image@sha256"
-                    ":91ac9b26df583762234c1cdb2fc930364754ccc59bc752a2bfe298d2ea68f9ff"
+                Container(
+                    (
+                        "securesystemsengineering/charlie-image@sha256"
+                        ":91ac9b26df583762234c1cdb2fc930364754ccc59bc7"
+                        "52a2bfe298d2ea68f9ff"
+                    ),
+                    0,
+                    "containers",
                 )
             ],
             fix.no_exc(),
@@ -91,31 +114,109 @@ def test_k8s_object_init(adm_req_sample_objects, index, exception):
         (3, [], fix.no_exc()),
     ],
 )
-def test_k8s_object_parent_images(
+def test_k8s_object_parent_containers(
     adm_req_sample_objects, m_request, index, parent_list, exception
 ):
     obj = wl.WorkloadObject(adm_req_sample_objects[index], "default")
     with exception:
-        assert obj.parent_images == parent_list
+        assert obj.parent_containers == parent_list
 
 
 @pytest.mark.parametrize(
     "index, images",
     [
-        (0, ["securesystemsengineering/alice-image:test"]),
+        (0, [Container("securesystemsengineering/alice-image:test", 0, "containers")]),
         (
             1,
             [
-                (
-                    "securesystemsengineering/charlie-image@sha256:"
-                    "91ac9b26df583762234c1cdb2fc930364754ccc59bc752a2bfe298d2ea68f9ff"
+                Container(
+                    (
+                        "securesystemsengineering/charlie-image@sha256:"
+                        "91ac9b26df583762234c1cdb2fc930364754ccc59bc752a2bfe298d2ea68f9ff"
+                    ),
+                    0,
+                    "containers",
                 )
             ],
         ),
-        (2, ["securesystemsengineering/sample-san-sama:hai"]),
-        (3, ["busybox"]),
+        (
+            2,
+            [
+                Container(
+                    "securesystemsengineering/sample-san-sama:hai", 0, "containers"
+                )
+            ],
+        ),
+        (3, [Container("busybox", 0, "containers")]),
+        (
+            5,
+            [
+                Container("redis:alpine", 0, "containers"),
+                Container("mysql:8", 1, "containers"),
+                Container("busybox:1.32", 0, "initContainers"),
+            ],
+        ),
     ],
 )
 def test_k8s_object_container_images(adm_req_sample_objects, index, images):
     obj = wl.WorkloadObject(adm_req_sample_objects[index], "default")
-    assert obj.container_images == images
+    containers = obj.containers
+    for i in range(len(containers)):
+        assert containers[i].image == images[i].image
+        assert containers[i].index == images[i].index
+        assert containers[i].container_type == images[i].container_type
+
+
+@pytest.mark.parametrize(
+    "index, image, patches",
+    [
+        (
+            0,
+            Container("redis:alpine", 0, "containers"),
+            {
+                "op": "replace",
+                "path": "/spec/template/spec/containers/0/image",
+                "value": "docker.io/library/redis:alpine",
+            },
+        ),
+        (
+            0,
+            Container("redis:alpine", 1, "containers"),
+            {
+                "op": "replace",
+                "path": "/spec/template/spec/containers/1/image",
+                "value": "docker.io/library/redis:alpine",
+            },
+        ),
+        (
+            0,
+            Container("redis:alpine", 1, "initContainers"),
+            {
+                "op": "replace",
+                "path": "/spec/template/spec/initContainers/1/image",
+                "value": "docker.io/library/redis:alpine",
+            },
+        ),
+        (
+            1,
+            Container("redis:alpine", 1, "containers"),
+            {
+                "op": "replace",
+                "path": "/spec/containers/1/image",
+                "value": "docker.io/library/redis:alpine",
+            },
+        ),
+        (
+            3,
+            Container("redis:alpine", 0, "initContainers"),
+            {
+                "op": "replace",
+                "path": "/spec/jobTemplate/spec/template/spec/initContainers/0/image",
+                "value": "docker.io/library/redis:alpine",
+            },
+        ),
+    ],
+)
+def test_k8s_object_json_patch(adm_req_sample_objects, index, image, patches):
+    obj = wl.WorkloadObject(adm_req_sample_objects[index], "default")
+    assert obj.get_json_patch(image) == patches
