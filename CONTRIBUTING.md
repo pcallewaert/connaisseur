@@ -77,6 +77,13 @@ Besides the unit testing and before any PR can be merged, an integration test is
 
 You can also run this integration test on a local cluster after setting the necessary environment variables.
 
+If you are changing documentation, you can simply inspect your changes locally via:
+
+```bash
+docker run --rm -it -p 8000:8000 -v ${PWD}:/docs squidfunk/mkdocs-material
+```
+
+
 ### Signed Commits and Pull Requests
 All changes to the `master` branch must be signed which is enforced via [branch protection](https://docs.github.com/en/free-pro-team@latest/github/administering-a-repository/about-required-commit-signing). This can be achieved by only fast-forwarding signed commits or signing of merge commits by a contributor. Consequently, while we appreciate signed commits in PRs, we do not require it.
 
