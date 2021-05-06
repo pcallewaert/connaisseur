@@ -31,7 +31,6 @@ MINIKUBE_NETWORK=minikube
 docker run -d --name alerting-endpoint -p 56243:56243 docker.io/securesystemsengineering/alerting-endpoint:latest
 docker network connect ${MINIKUBE_NETWORK} alerting-endpoint
 export ALERTING_ENDPOINT_IP=$(docker container inspect alerting-endpoint | jq -r --arg minikube_network ${MINIKUBE_NETWORK} '.[].NetworkSettings.Networks[$minikube_network].IPAddress')
-
 ```
 
 ### Actual test
@@ -48,7 +47,7 @@ docker rm alerting-endpoint
 ## Kind
 
 For kind we assume you have a running kind cluster set as current kubernetes context and that you have loaded the docker images from the latest connaisseur image version as well as the hook image onto the `kind` nodes.
-You need to have the alerting interface running and attach it to the docker network that is used by the kind container just as for minikube using the docker driver. By default, it's name is `kind`, so if you renamed the docker network of the kind container provide your custom name as `KIND_NETWORK`:
+You need to have the alerting interface running and attach it to the docker network that is used by the kind container just as for minikube using the docker driver. By default, it's name is `kind`, so if you renamed the docker network of the kind container, provide your custom name as `KIND_NETWORK`:
 
 ```shell
 KIND_NETWORK=kind
@@ -59,8 +58,8 @@ export ALERTING_ENDPOINT_IP=$(docker container inspect alerting-endpoint | jq -r
 
 From the git repository folder run the `connaisseur/tests/integration/integration-test.sh` script.
 
-Obviously, we don't want to leave unused resources running, so stop and remove the alerting interface docker container  as in the minikube case :-)
+Obviously, we don't want to leave unused resources running, so stop and remove the alerting interface docker container as in the minikube case :-)
 
 ## Note
 
-The integration test only works correctly if the alerting endpoint container is set up freshly as it counts all hits to its endpoints. So cleaning up is not only housekeeping, but also prevents you from issues caused by double-use of the container.
+The integration test only works correctly if the alerting endpoint container is set up freshly as it counts all hits to its endpoints. So cleaning up is not only housekeeping, but also prevents issues caused by double-use of the container.
