@@ -1,14 +1,21 @@
-# Initial Setup of docs 2.0
-This is where the landing page will reside and further information as hierarchical markdown files
+# Overview
+## What is Connaisseur?
+- 1 sentence intro
+- demo video
+- mission and values
+- features
 
-```bash
-ls -la
-docker run hello-world
-echo "hello docs"
-```
+## Getting Started / Quick Start
+quick start guide
 
-## Subheader
-this is text under a subheader
+## How it works
+write how it works
 
-## Next header
-another one...note the toc page navigation on the right and left.
+## Compatibility
+signature schemes, (managed) k8s, registries
+
+## Development
+Contributing, ADRs, ...
+
+## Resources
+blog posts, videos, ...

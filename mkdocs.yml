@@ -68,7 +68,28 @@ extra:
 # Page tree
 nav:
   - Overview: README.md
-  - validation.md
+  - getting_started.md
+  - core_concepts.md
+  - Validators:
+    - validators/README.md
+    - validators/notaryv1.md
+    - validators/notaryv2.md
+    - validators/sigstore_cosign.md
+  - Features:
+    - features/README.md
+    - features/detection_mode.md
+    - features/alerting.md
+  - threat_model.md
+  - Architecture Decision Records:
+    - adr/README.md
+    - adr/ADR-1_connaisseur-bootstrap-sentinel.md
+    - adr/ADR-2_release-management.md
+    - adr/ADR-3_multi_notary_config.md
+  - Unsorted:
+    - validation.md
+    - validators/ADVANCED.md
+  - CONTRIBUTING.md
+  - SECURITY.md
   - Releases ⧉: https://github.com/sse-secure-systems/connaisseur/releases
   - Support ⧉: https://github.com/sse-secure-systems/connaisseur/discussions
 
