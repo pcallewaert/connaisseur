@@ -23,6 +23,7 @@ In case you require a more private communication, you can reach us via [connaiss
 
 ## Contribute to Source Code
 The following steps will help you make code contributions to Connaisseur and ensure good code quality and workflow. This includes the following steps:
+
 1. **Setup your environment**: Setup up your local environment to best interact with the code. Further information is given [below](#setup-the-environment).
 2. **Make atomic changes**: Changes should be atomic. As such, pull requests should contain only few commits, and each commit should only fix one issue or implement one feature, with a concise commit message.
 3. **Test your changes**: Test any changes locally for code quality and functionality and add new tests for any additional code. How to test is described [below](#test-changes).

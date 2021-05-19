@@ -5,7 +5,10 @@
 - mission and values
 - features
 
-## Getting Started / Quick Start
+![](assets/connaisseur_demo.gif)
+
+
+## Quick Start
 quick start guide
 
 ## How it works
