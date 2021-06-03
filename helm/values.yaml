@@ -1,6 +1,6 @@
 # configure connaisseur deployment
 deployment:
-  replicasCount: 1
+  replicasCount: 2
   image: localhost:32000/securesystemsengineering/connaisseur:v2.0.0
   helmHookImage: securesystemsengineering/connaisseur:helm-hook-v1.0
   imagePullPolicy: Always
