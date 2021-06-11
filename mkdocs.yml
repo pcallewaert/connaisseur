@@ -84,6 +84,7 @@ nav:
   - Features:
     - features/README.md
     - features/detection_mode.md
+    - features/namespaced_validation.md
     - features/alerting.md
   - threat_model.md
   - Unsorted:
