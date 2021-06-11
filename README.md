@@ -2,7 +2,7 @@
 [![License: Apache-2.0](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://github.com/sse-secure-systems/connaisseur/blob/master/LICENSE)
 [![codecov](https://codecov.io/gh/sse-secure-systems/connaisseur/branch/master/graph/badge.svg)](https://codecov.io/gh/sse-secure-systems/connaisseur)
 
-![](img/svg/conny_logo.svg)
+![](docs/assets/connaisseur_fulllogo.svg)
 
 <!-- # Connaisseur -->
 
