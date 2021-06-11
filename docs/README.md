@@ -24,6 +24,8 @@ It provides several additional features:
 - [Namespaced Validation](features/namespaced_validation.md): *restrict validation to dedicated namespaces*
 - [Alerting](features/alerting.md): *send alerts based on verification result*
 
+Feel free to reach out to us via [GitHub Discussions](https://github.com/sse-secure-systems/connaisseur/discussions)!
+
 ## Quick Start
 
 Getting started to verify image signatures is only a matter of minutes: 
@@ -64,7 +66,15 @@ Both will return `pod/<name> created`. However, when trying to deploy an unsigne
 kubectl run demo --image=docker.io/securesystemsengineering/testimage:unsigned
 ```
 
-Connaisseur returns an error `(...) Unable to find signed digest (...)`.
+Connaisseur returns an error `(...) Unable to find signed digest (...)`. Since the images above are signed using Docker Content Trust, you can inspect the trust data using `docker trust inspect --pretty <image-name>`.
+
+To uninstall Connaisseur use:
+
+```bash
+helm uninstall connaisseur --namespace connaisseur
+```
+
+To uninstall all components add the `--purge` flag.
 
 Congrats :tada: you just validated the first images in your cluster! To get started configuring and verifying your own images and signatures, please follow our full [setup guide](getting_started.md).
 
