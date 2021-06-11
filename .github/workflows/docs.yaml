@@ -22,7 +22,9 @@ jobs:
         run: |
           git config user.name "versioning_user"
           git config user.email "connaisseur@securesystems.dev"
-      - name: deploy
+      - name: Setup Python
         run: |
           pip install -r docs/requirements.txt
+      - name: deploy
+        run: |
           mike deploy --push --update-aliases ${RELEASE_VERSION} latest
