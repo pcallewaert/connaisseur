@@ -87,16 +87,16 @@ nav:
     - features/namespaced_validation.md
     - features/alerting.md
   - threat_model.md
+  - SECURITY.md
+  - ADRs:
+    - adr/README.md
+    - adr/ADR-1_connaisseur-bootstrap-sentinel.md
+    - adr/ADR-2_release-management.md
+    - adr/ADR-3_multi_notary_config.md
+  - CONTRIBUTING.md
+  - Releases ⧉: https://github.com/sse-secure-systems/connaisseur/releases
+  - Support ⧉: https://github.com/sse-secure-systems/connaisseur/discussions
   - Unsorted:
     - validation.md
     - validators/ADVANCED.md
-    - Architecture Decision Records:
-      - adr/README.md
-      - adr/ADR-1_connaisseur-bootstrap-sentinel.md
-      - adr/ADR-2_release-management.md
-      - adr/ADR-3_multi_notary_config.md
-  - CONTRIBUTING.md
-  - SECURITY.md
-  - Releases ⧉: https://github.com/sse-secure-systems/connaisseur/releases
-  - Support ⧉: https://github.com/sse-secure-systems/connaisseur/discussions
 
