@@ -1,4 +1,4 @@
-# ADR 1: Connaisseur Bootstrap Sentinel
+# ADR 1: Bootstrap Sentinel
 
 ## Status
 

@@ -75,11 +75,37 @@ Congrats :tada: you just validated the first images in your cluster! To get star
 
 ## How does it work?
 
-write how it works
+Digital signatures can be used to ensure integrity and provenance of container images deployed to a Kubernetes cluster. On a very basic level, this requires two steps:
+
+1. Signing container images *after building*
+2. Verifying the image signatures *before deployment*
+
+Connaisseur dedicatedly solves the second step. It implements signature verification via several available signing schemes that we refer to as *validators*.
+While the specific security primitives mainly depend on the applied signing scheme, Connaisseur in general verifies the signature over the container image content against a trust anchor (e.g. public key) and thus let's you ensure that images have not been tampered with (integrity) and come from a valid source (provenance). 
+
+![](./assets/sign-verify.png)
+
+### Trusted digests
+
+Container images can be referenced in two different ways based on their registry, repository, image name (`<registry>/<repository>/<image name>`) followed by tag or digest:
+
+- tag: *docker.io/library/nginx:****1.20.1***
+- digest: *docker.io/library/nginx@****sha256:af9c...69ce***
+
+While the tag is a mutable, human readable description, the digest is an immutable, inherent property of the image, namely the SHA256 hash of its content.
+As a result a tag can have multiple digests whereas digests are unique for each image.
+In fact, the container runtime (e.g. containerd) compares the image content against the digest before spinning up the container (CHECK!!).
+As a consequence, the image digest can be signed and Connaisseur just needs to either translate an image referenced by tag to a trusted (signed by a trusted entity) digest or, in case of an image referenced by digest, validate whether the digest is trusted.
+
+### Admission control
+
+### Workflow
 
 ## Compatibility
 
-Connaisseur is assumed to be compatible with most common Kubernetes services. It has been successfully tested with:
+Supported signature solutions and configuration options are documented under [Validators](./validators/README.md).
+
+Connaisseur is expected to be compatible with most Kubernetes services. It has been successfully tested with:
 
 - [K3s](https://github.com/rancher/k3s) ✅
 - [kind](https://kind.sigs.k8s.io/) ✅
@@ -90,11 +116,20 @@ Connaisseur is assumed to be compatible with most common Kubernetes services. It
 - [Google Kubernetes Engine](https://cloud.google.com/kubernetes-engine/docs/) ✅
 - [SysEleven MetaKube](https://docs.syseleven.de/metakube) ✅
 
+All registry interactions use the [OCI Distribution Specification](https://github.com/opencontainers/distribution-spec/blob/main/spec.md) that is based on the [Docker Registry HTTP API V2](https://docs.docker.com/registry/spec/api/) which is the standard for all common image registries.
+For using Notary V1 as a signature solution, some registries provide the required Notary server attached to the registry with e.g. shared authentication. Connaisseur has been tested with the following Notary V1 supporting image registries:
 
+- [Docker Hub](https://hub.docker.com/) ✅
+- [Harbor](https://goharbor.io/) ✅ (check our [configuration notes](./validators/notaryv1.md#using-harbor-container-registry))
+- [Azure Container Registry (ACR)](https://docs.microsoft.com/en-us/azure/container-registry/) ✅ (check our [configuration notes](./validators/notaryv1.md#using-azure-container-registry))
+
+In case you identify any incompatibilities, please [create an issue](https://github.com/sse-secure-systems/connaisseur/issues/new/choose) :hearts:
 
 ## Development
 
-Contributing, ADRs, ...
+Connaisseur is open source and open development. We try to make major changes transparent via [*Architecture Decision Records* (ADRs)](./adr/README.md) and announce developments via [GitHub Discussions](https://github.com/sse-secure-systems/connaisseur/discussions/categories/announcements).
+
+We hope to get as many direct contributions and insights from the community as possible to steer further development. Please refer to our [contributing guide](CONTRIBUTING.md), [create an issue](https://github.com/sse-secure-systems/connaisseur/issues/new/choose) or [reach out to us via GitHub Discussions](https://github.com/sse-secure-systems/connaisseur/discussions) :pray:
 
 ## Resources
 

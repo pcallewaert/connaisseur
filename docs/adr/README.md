@@ -1,4 +1,4 @@
-# Architecture Decision Records for Connaisseur
+# Architecture Decision Records
 
 We strive to make decisions taken during the devlopment of Connaisseur transparent, whenever they may seem weird or unintuitive towards someone new to the project.
 
