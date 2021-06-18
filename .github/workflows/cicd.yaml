@@ -102,6 +102,9 @@ jobs:
     runs-on: ubuntu-latest
     container:
       image: python:alpine
+    env:
+      YARL_NO_EXTENSIONS: 1
+      MULTIDICT_NO_EXTENSIONS: 1
     steps:
       - uses: actions/checkout@v2
       - uses: ./.github/actions/safety
