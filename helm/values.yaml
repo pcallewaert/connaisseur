@@ -1,9 +1,9 @@
 # configure connaisseur deployment
 deployment:
-  replicasCount: 1
+  replicasCount: 3
   image: securesystemsengineering/connaisseur:v2.0.0
   helmHookImage: securesystemsengineering/connaisseur:helm-hook-v1.0
-  imagePullPolicy: Never
+  imagePullPolicy: Always
   resources: {}
   # limits:
   #   cpu: 100m
@@ -108,7 +108,7 @@ detection_mode: false
 # If the list contains '*' - all namespaces will be monitored.
 targetNamespaces: ['*']
 
-debug: true
+# debug: true
 
 # alerting is implemented in form of simple POST requests with json payload
 # you can use and/or adapt the predefined Slack/OpsGenie/Keybase templates and the examples below
