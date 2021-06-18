@@ -6,13 +6,7 @@ A Kubernetes admission controller to integrate container image signature verific
 
 Connaisseur ensures integrity and provenance of container images in a Kubernetes cluster. To do so, it intercepts resource creation or update requests sent to the Kubernetes cluster, identifies all container images and verifies their signatures against pre-configured public keys. Based on the result, it either accepts or denies those requests.
 
-It is developed under 3 core values:
-
-- Security
-- Usability
-- Compatibility
-
-Connaisseur supports the following signing solutions:
+Connaisseur is developed under three core values: *Security*, *Usability*, *Compatibility*. It is built to be extendable and currently aims to support the following signing solutions:
 
 - [Notary V1](https://github.com/theupdateframework/notary) / [Docker Content Trust](https://docs.docker.com/engine/security/trust/)
 - [Sigstore](https://sigstore.dev/) / [Cosign](https://github.com/sigstore/cosign) (EXPERIMENTAL)
@@ -79,14 +73,34 @@ To uninstall all components add the `--purge` flag.
 Congrats :tada: you just validated the first images in your cluster! To get started configuring and verifying your own images and signatures, please follow our full [setup guide](getting_started.md).
 
 
-## How it works
+## How does it work?
+
 write how it works
 
 ## Compatibility
-signature schemes, (managed) k8s, registries
+
+Connaisseur is assumed to be compatible with most common Kubernetes services. It has been successfully tested with:
+
+- [K3s](https://github.com/rancher/k3s) ✅
+- [kind](https://kind.sigs.k8s.io/) ✅
+- [MicroK8s](https://github.com/ubuntu/microk8s) ✅
+- [minikube](https://github.com/kubernetes/minikube) ✅
+- [Amazon Elastic Kubernetes Service (EKS)](https://docs.aws.amazon.com/eks/) ✅
+- [Azure Kubernetes Service (AKS)](https://docs.microsoft.com/en-us/azure/aks/) ✅
+- [Google Kubernetes Engine](https://cloud.google.com/kubernetes-engine/docs/) ✅
+- [SysEleven MetaKube](https://docs.syseleven.de/metakube) ✅
+
+
 
 ## Development
+
 Contributing, ADRs, ...
 
 ## Resources
-blog posts, videos, ...
+
+Several resources are available to learn more about connaisseur and related topics:
+
+- "[*Container Image Signatures in Kubernetes*](https://medium.com/sse-blog/container-image-signatures-in-kubernetes-19264ac5d8ce)" - blog post (full introduction)
+- "[*Integrity of Docker images*](https://berlin-crypto.github.io/event/dockerimagesignatures.html)" - talk at Berlin Crypto Meetup (*The Update Framework*, *Notary*, *Docker Content Trust* & Connaisseur [live demo])
+- "[*Verifying Container Image Signatures from an OCI Registry in Kubernetes*](https://blog.sigstore.dev/verify-oci-container-image-signatures-in-kubernetes-33663a9ec7d8)" - blog post (experimental support of SigStore/Cosign)
+
