@@ -57,7 +57,7 @@ jobs:
     steps:
       - uses: actions/checkout@v2
       - name: Install packages
-        run: pip3 install -r requirements_dev.txt
+        run: YARL_NO_EXTENSIONS=1 MULTIDICT_NO_EXTENSIONS=1 pip3 install -r requirements_dev.txt
       - name: Lint
         run: cd connaisseur && pylint --ignore-patterns=tests,coverage *.*
 
