@@ -107,7 +107,7 @@ As a result, Connaisseur just needs to make sure that only *trusted digests* (si
 Depending on how an image for deployment is referenced, it will either attempt to translate the tag to a trusted digest or validate whether the digest is trusted.
 How the digest is signed in detail, where the signature is stored, what it is verfied against and how different image distribution and updating attacks are mitigated depends on the signature schemes.
 
-### Admission controllers
+### Mutating Admission controller
 
 How to validate images *before* deployment to a cluster?
 The [Kubernetes API](https://kubernetes.io/docs/concepts/overview/kubernetes-api/) is the fundamental fabric behind the control plane.
@@ -125,7 +125,9 @@ This allows Connaisseur to intercept requests before deployment and based on the
 
 ![](./assets/admission-controller.png)
 
-### Workflow
+### Image Policy and Validators
+
+![](./assets/connaisseur-overview.png)
 
 ## Compatibility
 
