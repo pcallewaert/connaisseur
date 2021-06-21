@@ -127,6 +127,16 @@ This allows Connaisseur to intercept requests before deployment and based on the
 
 ### Image Policy and Validators
 
+Now, how does Connaisseur process admission requests?
+When a request is processed it is inspected for container image references that need to be validated.
+The resulting list of images referenced by tag or digest is passed to the image policy.
+The image policy matches the identified images to the configured validators and corresponding trust anchors (e.g. public keys) to be used for verification.
+Image policy and validator configuration form the central logic behind Connaisseur and are described in full detail under [core concepts](./core_concepts.md).
+Validation is the step where the actual signature verification takes place.
+For each image, the required trust data is retrieved from external sources such as Notary server, registry or Sigstore transparency log and validated against the preconfigured trust anchor (e.g. public key).
+In case, no trusted digest is found for any of the images (i.e. either no signed digest available or no signature matching the public key) the whole request will be denied.
+Otherwise, Connaisseur will translate all image references in the original request to trusted digests and admit it.
+
 ![](./assets/connaisseur-overview.png)
 
 ## Compatibility
