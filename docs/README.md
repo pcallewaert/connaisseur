@@ -105,7 +105,7 @@ This also means that a tag can correspond to multiple digests whereas digests ar
 The container runtime (e.g. containerd) compares the image content against the received digest before spinning up the container (CHECK!!).
 As a result, Connaisseur just needs to make sure that only *trusted digests* (signed by a trusted entity) are passed to the container runtime.
 Depending on how an image for deployment is referenced, it will either attempt to translate the tag to a trusted digest or validate whether the digest is trusted.
-How the digest is signed in detail, what the signature is verfied against and how different attempts to inject malicious images are mitigated depends on the signature schemes.
+How the digest is signed in detail, where the signature is stored, what it is verfied against and how different image distribution and updating attacks are mitigated depends on the signature schemes.
 
 ### Admission controllers
 
@@ -122,10 +122,6 @@ This allows Connaisseur to intercept requests before deployment and based on the
 - *admit* if all images are referenced by trusted digests (CHECK!)
 - *modify* if all images can be translated to trusted digests
 - *deny* if at least one of the requested images does not have a trusted digest
-
-While validating admission controllers can only admit or deny, mutating admission controllers can also modify the request.
-As Connaisseur might have to modify a request containing a container image referenced by tag to a trusted digest, it uses a mutating admission webhook which passes the request to its pods running inside the cluster.
-The webhook is configured to only intercept resource creation or update requests, since only those are relevant for signature verification.
 
 ![](./assets/admission-controller.png)
 
